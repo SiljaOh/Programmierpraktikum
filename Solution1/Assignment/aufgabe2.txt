@@ -1,0 +1,30 @@
+Aufgabe 2:
+
+Aktuellen Stand abfragen:
+
+git pull origin main
+
+
+Datei hinzufügen:
+
+touch Solution1/Assignment/aufgabe1.py
+git add Solution1/Assignment/aufgabe1.py
+
+
+Datei ändern: 
+
+echo "# Lösung für die erste AUfgabe: ..." >Solution1/Assignment/aufgabe1.py
+
+
+Änderung ansagen:
+
+git commit -m "Erste Version Abgabe1"
+
+
+Änderungen speichern/mit allen teilen:
+
+git push origin main
+
+
+
+
