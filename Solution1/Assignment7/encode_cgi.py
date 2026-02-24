@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/python3
 import mycgi
 import sys
 import re
@@ -12,126 +12,143 @@ print("Content-type: text/html\n\n")
 
 #
 #
-#aus encode.py
-#read csv, convert to dict [{collumn1: value1, collumn2: value2, ...} , {...} , ...]
-def parse_csv(filepath):
-    data_list = []
-
-    with open(filepath, 'r') as f:
-        header = f.readline().strip().split(',')
-
-        for line in f:
-            line = line.strip()
-            if not line:
-                continue
-            values = line.split(',')
-            row_dict = dict(zip(header, values))
-            data_list.append(row_dict)
-
-    return data_list
-
-
-#produces tsv: Data_Type \t Count of Data type
-#No header
-#example: Integ Cluster   1
-def write_exptypes(data,output_file):
-    counts = {} #for all Data types
-
-    for row in data:
-        dt = row['Data_Type']
-        counts[dt] = counts.get(dt, 0) + 1
-
-    with open(output_file, 'w') as f:
-        for dt in sorted(counts.keys()):
-            f.write(f"{dt}\t{counts[dt]}\n")
-
-
-#Cell_Type = Zelllinie
-#produces tsv: Cell_Type \t Count of Antibodies for ChIP-Seq Experiments
-#No header
-#inlcude Cell_Type s without Chip Seq Experiment
-#example: 8988T   0 (--> No experiment with ChIP-seq)
-#interpretation of generated file: a celltype has ChIp-seq experiments with n different Antibodies
-def write_antibodies(data,output_file):
-
-    all_cells = sorted(list(set(row['Cell_Type'] for row in data))) #set eliminates duplicates
-    # { cell_type : {antibody1, antibody2, ...} } dictionary with set als values
-    cell_antibodies = {cell: set() for cell in all_cells} #set!!!
-
-    for row in data:
-        if row['Data_Type'] == 'ChIP-seq':
-            cell = row['Cell_Type']
-            factors = row['Experimental_Factors']
-
-            # Extract value after "Antibody="
-            match = re.search(r'Antibody=(\S+)', factors)
-            if match:
-                cell_antibodies[cell].add(match.group(1))
-
-    with open(output_file, 'w') as f:
-        for cell in all_cells:
-            count = len(cell_antibodies[cell])
-            f.write(f"{cell}\t{count}\n")
-
-
-
-#produces tsv: cell line \t RNAseq Accession \t ChIPseq Accession
-#DCC number = DCC_Accession = eindeutige ID für jedes Expriment
-#with header
-#sammeln von cell lines und der DCC_Accession von RNAseq experiment und von ChIP-seq experiment für H3K27me3
-#überpürufen ob jede cell line mind eine RNA Accession hat und mind eine ChIP Accession für H3K27me3
-#sortieren, wenn es mehrere IDs gibt für mehrere Experimente
-
-def write_chip_rna_seq(data, output_file):
-    # Dictionary with list: { "cell type": {"rna": [], "chip": []} } #use list instead of set to avoid losing duplicates
-    res = {}
-
-    for row in data:
-        cell = row['Cell_Type']
-        dcc = row['DCC_Accession'].strip()
-        dtype = row['Data_Type'].strip()
-        factors = row['Experimental_Factors']
-
-        if not dcc:  # skip empty accessions!!!!!
+# aus psscan.py
+def parse_fasta(text):
+    sequences = {}
+    current_header = None
+    current_seq = []
+    for line in text.splitlines():
+        line = line.strip()
+        if not line:
             continue
+        if line.startswith(">"):
+            if current_header:
+                sequences[current_header] = "".join(current_seq)
+            current_header = line[1:]
+            current_seq = []
+        else:
+            current_seq.append(line)
+    if current_header:
+        sequences[current_header] = "".join(current_seq)
+    return sequences
 
-        #DCC-Accession Duplicates are allowed
-        #Zelllinien cant be duplicates:
-        if cell not in res:
-            res[cell] = {'rna': [], 'chip': []}
+# aus psscan.py
+def prosite_to_regex(pattern):
+    regex = pattern.strip().rstrip(".")
+    regex = regex.replace("<", "^").replace(">", "$")
+    regex = re.sub(r'\{([A-Za-z]+)\}', r'[^\1]', regex)
+    regex = regex.replace("x", ".")
+    regex = regex.replace("-", "")
+    regex = re.sub(r'\((\d+(?:,\d+)?)\)', r'{\1}', regex)
+    return regex
 
-        if dtype == 'RNA-seq':
-            res[cell]['rna'].append(dcc)
+# aus psscan.py
+def pattern_from_web(prosite_id):
+    url = "https://ftp.expasy.org/databases/prosite/prosite.dat"
+    try:
+        with urllib.request.urlopen(url, timeout=30) as response:
+            found = False
+            for line in response:
+                line = line.decode("utf-8").rstrip("\n")
+                if line.startswith("AC") and prosite_id in line:
+                    found = True
+                if found and line.startswith("PA"):
+                    return line[2:].strip().rstrip(".")
+    except Exception as e:
+        print(f"Fehler beim Abrufen: {e}")
+    return None
 
-        if dtype == 'ChIP-seq':
-            match = re.search(r'Antibody=(\S+)', factors)
-            if match and match.group(1) == 'H3K27me3':
-                res[cell]['chip'].append(dcc)
+#aus psscan.py
+def scan_seq(sequences, regex):
+    results = []
+    search_regex = f"(?=({regex}))"
+    for header, sequence in sequences.items():
+        for match in re.finditer(search_regex, sequence):
+            results.append((header, match.start() + 1, match.group(1)))
+    return results
 
-    with open(output_file, 'w') as f:
-        #header
-        f.write("cell line\tRNAseq Accession\tChIPseq Accession\n")
-
-        for cell in sorted(res.keys()):
-            if res[cell]['rna'] and res[cell]['chip']: #Sicherstellung dass IDS für RNA seq und ChIP seq vorhanden sind
-                rna_ids = ",".join(sorted(res[cell]['rna']))
-                chip_ids = ",".join(sorted(res[cell]['chip']))
-                f.write(f"{cell}\t{rna_ids}\t{chip_ids}\n")
 
 #
 #
 #
-
 
 
 form = mycgi.Form()
 
-csv_input   = form.getvalue("csv")   or ""
+fasta_input   = form.getvalue("fasta")   or ""
+pattern_input = form.getvalue("pattern") or ""
+web_input     = form.getvalue("web")     or ""
+
 
 def h(s):
     return html.escape(str(s))
 
-#HTML TODO
 
 
+#HTML
+print(f"""
+<h1>PROSITE Pattern Scanner</h1>
+
+<form method="POST" action="">
+
+  <label>FASTA-Sequenz:</label><br>
+  <input type="text" name="fasta" value="{h(fasta_input)}"
+     placeholder="z.B. C-x(2,4)-C-x(3)-[LIVMFY]" size="40">
+  <br><br>
+
+  <label>Pattern (PROSITE-Format):</label><br>
+  <input type="text" name="pattern" value="{h(pattern_input)}"
+         placeholder="z.B. C-x(2,4)-C-x(3)-[LIVMFY]" size="40">
+  <br><br>
+
+  <b>– ODER –</b><br><br>
+
+  <label>PROSITE-ID (wird online abgerufen):</label><br>
+  <input type="text" name="web" value="{h(web_input)}"
+         placeholder="z.B. PS00001" size="20">
+  <br><br>
+
+  <input type="submit" value="Scannen">
+</form>
+""")
+
+
+
+#Verabreitung mit CGI
+if fasta_input:
+    current_pattern = None
+    pattern_label   = ""
+
+    if pattern_input:
+        current_pattern = pattern_input
+        pattern_label   = "Manuelles Pattern"
+    elif web_input:
+        current_pattern = pattern_from_web(web_input)
+        if current_pattern:
+            pattern_label = f"Pattern für {h(web_input)}"
+        else:
+            print(f'<p style="color:red">Pattern für ID „{h(web_input)}" nicht gefunden.</p>')
+
+    if current_pattern:
+        print(f'<p>Verwendetes Pattern ({pattern_label}): <code>{h(current_pattern)}</code></p>')
+        try:
+            regex_str = prosite_to_regex(current_pattern)
+            sequences = parse_fasta(fasta_input)
+            results   = scan_seq(sequences, regex_str)
+
+            if results:
+                print("<pre>")
+                for header, pos, matched in results:
+                    print(f"{h(header)}\t{pos}\t{h(matched)}")
+                print("</pre>")
+            else:
+                print("<p>Keine Treffer gefunden.</p>")
+
+        except re.error as e:
+            print(f'<p style="color:red">Ungültiger Regex: {h(e)}</p>')
+        except Exception as e:
+            print(f'<p style="color:red">Fehler: {h(e)}</p>')
+
+    elif not pattern_input and not web_input:
+        print('<p style="color:red">Bitte Pattern oder PROSITE-ID angeben.</p>')
 
