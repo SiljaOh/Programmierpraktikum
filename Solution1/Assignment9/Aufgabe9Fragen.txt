@@ -1,0 +1,61 @@
+ChIP-Seq: 
+
+"Chromatin Immunoprecipitation Sequencing"
+Dient der genomweiten Bestimmung von Protein-DNA-Interaktionsstellen. Man findet heraus, wo Transkriptionsfaktoren binden oder wie Histone modifiziert sind.
+
+2 Hauptschritte: 
+1. ChIP (=biochemische Isolierung)
+2. Seq (= Sequenzierung)
+
+Ablauf:
+1. Crosslinking : Fixierung der Proteine an DNA
+2. Sonication: DNA wird zu DNA Fragmenten 
+3. Immunpräzipitation (ChIP): Antikörper, der Zielprotein erkennt, wird hinzugefügt. Bindet an Zielprotein, das an DNA Fragment gebunden ist
+4. Aufreinigung, lösen von Protein und DNA Fragment
+5. Sequenzierung (Next Gen Seq): gefundene DNA Fragmente werden gelesen
+6. Mapping: Vergleich mit Referenzgenom: Profile Plot, Read Coverage Track: Peaks : dort saß das Protein ; zb. MACS2 entscheidet, ob echte Protein-Bindestellen oder ob Rauschen (Vergleich zu Input-Probe)
+
+
+RNA-Seq:"RNA Sequencing"
+
+Misst das Transkriptom einer Zelle. Es gibt Auskunft über die Genexpression (Aktivität der Gene) zu einem bestimmten Zeitpunkt durch das Zählen von RNA-Abschriften (Reads).
+
+2 Hauptschritte:
+1. Library Preparation (Umwandlung von instabiler RNA in stabile DNA-Fragmente)
+2. Seq (Sequenzierung & quantitative Analyse)
+
+Ablauf:
+1. RNA Isolation
+2. Selection: Poly-A-Selection um nur mRNA abzufangen
+3. Fragmentierung: mRNA --> RNA-Fragmente
+4. Reverse Transkription (da mRNA zu instabil) mRNA --> cDNA
+5. Adapter Ligation Kurze DNA-Stücke (Adapter) werden an die Enden geklebt
+6. Sequenzierung
+7. Mapping:Read Counts: Count-Tabelle
+
+
+NFKB: 
+Transkriptionsfaktor
+Kann Enhancer oder Promoter binden unn dann Pol2 rekrutieren
+
+
+Pol2: 
+RNA-Polymerase 2. Übersetzung DNA --> mRNA. 
+Ein Pol2-Peak direkt am Start eines Gens deutet auf aktive Transkription hin.
+
+
+H3K27me3: 
+epigenetischer Marker: Tri-Methylierung an Histon H3. K27: Lysin an Pos 27
+
+
+In welcher Zelllinie wurden die meisten verschiedenen Antikörper verwendet?
+
+annan@Inspiron15Anna MINGW64 ~
+$ sort -t$'\t' -k2 -rn "C:\Users\annan\OneDrive - TUM\Desktop\propaBlock\antibodies.tsv" | head -5
+K562    167
+GM12878 106
+HepG2   87
+H1-hESC 78
+HeLa-S3 74
+
+Antwort: In Zelllinie K562 mit 167 verschiedenen Antikörpern
