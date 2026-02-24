@@ -86,32 +86,40 @@ def h(s):
 
 
 #HTML
-print(f"""
+print(f"""<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<style>
+  textarea[name="fasta"], input[type="text"] {{
+    width: 400px;
+    box-sizing: border-box;
+    display: block;
+    margin-bottom: 10px;
+  }}
+  textarea[name="fasta"] {{
+    resize: none;
+    height: 150px;
+  }}
+</style>
+</head>
+<body>
 <h1>PROSITE Pattern Scanner</h1>
-
 <form method="POST" action="">
+  <label>FASTA-Sequenz:</label>
+  <textarea name="fasta" placeholder=">Header&#10;SEQUENZ...">{h(fasta_input)}</textarea>
 
-  <label>FASTA-Sequenz:</label><br>
-  <input type="text" name="fasta" value="{h(fasta_input)}"
-     placeholder="z.B. C-x(2,4)-C-x(3)-[LIVMFY]" size="40">
-  <br><br>
-
-  <label>Pattern (PROSITE-Format):</label><br>
-  <input type="text" name="pattern" value="{h(pattern_input)}"
-         placeholder="z.B. C-x(2,4)-C-x(3)-[LIVMFY]" size="40">
-  <br><br>
+  <label>Pattern (PROSITE-Format):</label>
+  <input type="text" name="pattern" value="{h(pattern_input)}" placeholder="z.B. C-x(2,4)-C-x(3)-[LIVMFY]">
 
   <b>– ODER –</b><br><br>
 
-  <label>PROSITE-ID (wird online abgerufen):</label><br>
-  <input type="text" name="web" value="{h(web_input)}"
-         placeholder="z.B. PS00001" size="20">
-  <br><br>
+  <label>PROSITE-ID (Web-Abruf):</label>
+  <input type="text" name="web" value="{h(web_input)}" placeholder="z.B. PS00001">
 
   <input type="submit" value="Scannen">
 </form>
 """)
-
 
 
 #Verabreitung mit CGI
@@ -152,3 +160,4 @@ if fasta_input:
     elif not pattern_input and not web_input:
         print('<p style="color:red">Bitte Pattern oder PROSITE-ID angeben.</p>')
 
+print("</body></html>")
