@@ -1,6 +1,6 @@
 Zur Analyse wurde BLASTn (Nucleotide BLAST) verwendet (https://blast.ncbi.nlm.nih.gov/Blast.cgi). Es wurden 119,477,437 Sequenzen in der Datenbank durchsucht. Die signifikanten Treffer zeigten vollstaendige Uebereinstimmung mit dem Genom von SARS-CoV-2 (Severe acute respiratory syndrome coronavirus 2) bzw. (cDNA) mit E-value von 0.0. Der E-value (Expect value) gibt an, wie viele Treffer gleicher oder besserer Qualitaet zufaellig in einer Datenbank dieser Gruende zu erwarten wuerden. Ein E-value von 0.0 bedeutet eine extrem hohe statistische Signifikanz. Im GenBank-Eintrag des Top-Treffers (MW734483.1) ist die Region unter FEATURES annotiert als:
-/gene="S"
-/product="surface glycoprotein"
+gene="S"
+product="surface glycoprotein"
 CDS <1..>692
 CDS (Coding Sequence) bezeichnet den proteinkodierenden Bereich eines Gens. 
 < und > bedeuten, dass Anfang und Ende der vollstaendigen CDS ausserhalb des dargestellten Sequenzausschnitts liegen.
