@@ -1,0 +1,10 @@
+Zur Analyse wurde BLASTn (Nucleotide BLAST) verwendet (https://blast.ncbi.nlm.nih.gov/Blast.cgi). Es wurden 119,477,437 Sequenzen in der Datenbank durchsucht. Die signifikanten Treffer zeigten vollstaendige Uebereinstimmung mit dem Genom von SARS-CoV-2 (Severe acute respiratory syndrome coronavirus 2) bzw. (cDNA) mit E-value von 0.0. Der E-value (Expect value) gibt an, wie viele Treffer gleicher oder besserer Qualitaet zufaellig in einer Datenbank dieser Gruende zu erwarten wuerden. Ein E-value von 0.0 bedeutet eine extrem hohe statistische Signifikanz. Im GenBank-Eintrag des Top-Treffers (MW734483.1) ist die Region unter FEATURES annotiert als:
+/gene="S"
+/product="surface glycoprotein"
+CDS <1..>692
+CDS (Coding Sequence) bezeichnet den proteinkodierenden Bereich eines Gens. 
+< und > bedeuten, dass Anfang und Ende der vollstaendigen CDS ausserhalb des dargestellten Sequenzausschnitts liegen.
+Die Sequenz liegt somit im S-Gen von SARS-CoV-2 und kodiert einen Abschnitt des Spike-Proteins (surface glycoprotein).
+Literatur: 
+Chen B, Farzan M, Choe H. SARS-CoV-2 spike protein: structure, viral entry and variants. Nat Rev Microbiol. 2025;23(7):455\'96468. PMID: 40328900.
+Zhu C et al. Molecular biology of the SARS-CoV-2 spike protein: A review of current knowledge. J Med Virol. 2021;93(10):5729\'965741. PMID: 34125455.
