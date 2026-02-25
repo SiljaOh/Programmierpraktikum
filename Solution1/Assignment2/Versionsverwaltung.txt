@@ -1,0 +1,49 @@
+Aufgabe 2:
+
+Anfang erstmal clonen
+
+in Ordner gehen und dann 
+
+git clone https://gitlab2.cip.ifi.lmu.de/grossla/progprakt-17.git
+
+cd progprakt-17
+
+
+Aktueller Stand:
+
+git pull origin main
+
+
+evtll neuer Ordner :
+
+mkdir Blatt1
+
+
+Datei hinzufügen:
+
+touch aufgabe1.py (erstellen)
+
+git add aufgabe1.py
+
+
+Datei ändern: 
+
+echo "# Lösung für die erste AUfgabe: ..." > aufgabe1.py
+
+nano aufgabe1.py
+
+mit add wieder hinzufügen
+
+
+Änderung ansagen:
+
+git commit -m "Erste Version Abgabe1"
+
+
+Änderungen speichern/mit allen teilen:
+
+git push origin main
+
+
+
+
