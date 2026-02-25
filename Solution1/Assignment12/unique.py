@@ -2,6 +2,7 @@
 from collections import defaultdict
 import argparse, sys
 
+#fasta file einlesen
 def read_fasta(path):
     rec, h, buf = [], None, []
     with open(path) as f:
