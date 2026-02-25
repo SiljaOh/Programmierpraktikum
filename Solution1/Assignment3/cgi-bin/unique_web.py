@@ -16,7 +16,7 @@ MAX_K_COUNT = 50                      # max. wie viele k-Werte akzeptiert werden
 MAX_K_VALUE = 1000000                 # Schutz gegen Quatschwerte (z.B. 10^9)
 
 # ----------------------------
-# Fachlogik (deine Funktionen)
+# Fachlogik (
 # ----------------------------
 
 def read_fasta(path):
