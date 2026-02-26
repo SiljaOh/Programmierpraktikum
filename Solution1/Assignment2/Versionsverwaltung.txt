@@ -1,19 +1,38 @@
 Aufgabe 2:
 
-Aktuellen Stand abfragen:
+Anfang erstmal clonen
+
+in Ordner gehen und dann 
+
+git clone https://gitlab2.cip.ifi.lmu.de/grossla/progprakt-17.git
+
+cd progprakt-17
+
+
+Aktueller Stand:
 
 git pull origin main
 
 
+evtll neuer Ordner :
+
+mkdir Blatt1
+
+
 Datei hinzufügen:
 
-touch Solution1/Assignment/aufgabe1.py
-git add Solution1/Assignment/aufgabe1.py
+touch aufgabe1.py (erstellen)
+
+git add aufgabe1.py
 
 
 Datei ändern: 
 
-echo "# Lösung für die erste AUfgabe: ..." >Solution1/Assignment/aufgabe1.py
+echo "# Lösung für die erste AUfgabe: ..." > aufgabe1.py
+
+nano aufgabe1.py
+
+mit add wieder hinzufügen
 
 
 Änderung ansagen:

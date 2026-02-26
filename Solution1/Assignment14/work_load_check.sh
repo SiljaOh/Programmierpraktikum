@@ -4,7 +4,7 @@
 # mindestenst 1 Namen eines Rechners eingeben.
 
 # Hostname?
-if [ $# -lt 1 ]; then
+if [ $# -ne 1 ]; then
     exit 2
 fi
 

@@ -1,12 +1,13 @@
 #!/usr/bin/env python3
 import argparse
 
-def norm_kw(s):
-    s = s.strip()
-    s = " ".join(s.split())   # mehrere Whitespaces im Inneren auf ein einzelnes Leerzeichen reduzieren
-    if s.endswith("."):
-        s = s[:-1].strip()
-    return s.casefold()
+def norm_kw(s: str) -> str:
+    s = s.strip().strip('"').strip("'")
+    s = " ".join(s.split())
+    s = s.rstrip(".;")
+    if not s:
+        return ""
+    return s
 
 # Aufgabe 6 : Swissprot-Keyword
 # zu allen gegebenen Keywords Eintrage aus der Swissprot Datei swissprot45.dat
@@ -63,20 +64,26 @@ def build_parser():
 
 def process(entry, wanted):
     acs = []
-    kws = set()
+    kw_buffer = []
 
     for line in entry:
-        if line.startswith("AC"):
+        if line.startswith("AC   "):
             for t in line[5:].strip().split(";"):
                 t = t.strip()
                 if t:
                     acs.append(t)
 
-        elif line.startswith("KW"):
-            for t in line[5:].strip().split(";"):
-                t = t.strip()
-                if t:
-                    kws.add(norm_kw(t))
+        elif line.startswith("KW   "):
+            kw_buffer.append(line[5:].strip())
+
+    # ALLE KW-Zeilen zusammenführen
+    kw_text = " ".join(kw_buffer)
+
+    kws = set()
+    for t in kw_text.split(";"):
+        t = norm_kw(t)
+        if t:
+            kws.add(t)
 
     if not wanted.isdisjoint(kws):
         return acs
@@ -85,7 +92,8 @@ def process(entry, wanted):
 
 def main():
     args = build_parser().parse_args()
-    wanted = {norm_kw(k) for k in args.keyword}
+    wanted = set(norm_kw(k) for k in args.keyword)
+    wanted.discard("")
 
     hits = set()
     entry = []

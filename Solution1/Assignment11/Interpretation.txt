@@ -1,0 +1,35 @@
+Relative Häufigkeit:
+
+Wie erwartet ist A ungefähr T und C ungefähr G, Bakterien haben mehr CG Anteil als Menschen
+
+
+Erwartete Anzahl von Indizien:
+
+Wäre ja nur qenn alles p = 1/4, beim Mensch höher da das Genom viel größer ist. Ist biologisch unrealistisch, das Lebewesen nicht eine so perfekte Verteilung haben.
+
+
+Tatsächliche relative Häufigkeit:
+
+Entsprechend dem CG/AT Anteil von Mensch und Bakterium passend zur relativen Häufigkeit oben.
+
+
+Tatsächliche Indizen:
+
+Weicht teilweise sehr stark ab
+
+
+
+Verhältniss zur Erwartung (Fold-change):
+
+unter 1: Sequenz unterrepräsentiert -> Durch Selektion/Mutation in NAtur vermieden
+
+über 1: Sequenz überrepräsentiert -> Wird aktiv konserviert/vervielfältigt
+
+CTAG von Bakterium vermieden da sie Restriktionsenzyme haben die CTAG zb schneiden, Selbstzerstörung
+
+Mensch sehr wenig CG wegen CpG-Suppression, CG sehr instabil werden zu TG Bakterium nutz viel, das sieht man hier wieder, schützen ihre DNA anders
+
+Mensch vieeeel AACCCTGTC -> ALu-Elemente die quasi Müll sind, zu Vervielfältigung massiv überrepräsentiert
+
+ATG beides bisschen über 1 da man es als Startcodon für Proteine braucht -> Gegenstück AUG
+

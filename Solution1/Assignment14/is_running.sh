@@ -2,21 +2,23 @@
 
 # is_running.sh prüft, ob ein bestimmter Prozess eines Users aktiv ist
 # Exit-Code (d.h. Rückgabewert): 0 = Prozess läuft nicht, 1 = Prozess läuft
-
-
+# Exit 0: Prozess läuft nicht
+# Exit 1: Prozess läuft
+# Exit 2: falsche Parameter
 # zuerst Argumente prüfen: sind Prozessname (process name) und User (user) angegeben?
 # Anzahl ($#) der Argument weniger als 2
-if [ $# -lt 2 ]; then
-    echo "More arguments are needed."
+
+if [ $# -ne 2 ]; then
     exit 2
 fi
 
 # Prozesse suchen
-processFound=$(pgrep -x -c -u "$2" "$1")
+proc="$1"
+usr="$2"
 
 # Exit-Code printen
-if [ "$processFound" -ne 0 ]; then
-    exit 1
+if pgrep -x -u "$usr" "$proc" >/dev/null 2>&1; then
+  exit 1
 else
-    exit 0
+  exit 0
 fi

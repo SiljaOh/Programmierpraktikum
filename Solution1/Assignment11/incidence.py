@@ -1,48 +1,54 @@
 #!/usr/bin/python3
 import argparse
+import re
 
-#Vorkommen und Wahrscheinlichkeiten von Nukleotiden & kurzen Teilsequenzen
+
+#Vorkommen und Wahrscheinlichkeiten von Nukleotiden & kurzen Teilsequenzen in Genom
 parser = argparse.ArgumentParser()
 #nargs='+' für mehrere Eingaben nach
 parser.add_argument('--sequence', nargs='+', required=True)
-parser.add_argument('--genome', required=True)
+parser.add_argument('--genome', type=argparse.FileType('r'), required=True)
 args = parser.parse_args()
 genome_file = args.genome
 sequences = args.sequence
+sequences = [s.upper() for s in sequences]
 
+#Ungültige Sequenzen vermeiden
+for s in sequences:
+    if not re.match(r"^[ACGKTUN]+$", s.upper()):
+        print("Ungültige Sequenz")
 
-genome_sequence = []
+genome_parts = []
+current_seq = []
 #Ganze Sequenz als 1 zusammenfügen, Anfangszeile egal
-with open(genome_file) as f:
-    for line in f:
-        if line.startswith('>'):
-            continue
-        genome_sequence.append(line.strip())
+for line in genome_file:
+    line = line.strip()
+    if line.startswith(">"):
+        # Alte Sequenz von davor falls vorhaneden speichern
+        if current_seq:
+            genome_parts.append("".join(current_seq).upper())
+            current_seq = []
+        # kein header = verlängern
+    else:
+        current_seq.append(line)
+    # letzte line
+if current_seq:
+    genome_parts.append("".join(current_seq).upper())
 
-genome_sequence = "".join(genome_sequence)
 
 results = []
 
 for sequence in sequences:
     length = len(sequence)
     count = 0
-    #länge der sequenz immer eins weiter nch rechst dass auch alle überlappenden gefunden werden
-    for i in range(len(genome_sequence) - length + 1):
-        #aktuelles fenster
-        seq = genome_sequence[i:i+length]
-
-        if seq == sequence:
-            count += 1
+    for part in genome_parts:
+        for i in range(len(part) - length + 1):
+            # aktuelles fenster
+            seq = part[i:i + length]
+            if seq == sequence:
+                count += 1
 
     results.append(f"{sequence}: {count}")
 
 print("\n".join(results))
-
-
-
-
-
-
-
-
 

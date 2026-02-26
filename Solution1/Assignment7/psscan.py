@@ -56,7 +56,12 @@ def main():
     args = parser.parse_args()
 
 
-    seq=parse_fasta(args.fasta)
+    seq_dict=parse_fasta(args.fasta)
+
+    if not seq_dict:
+        print("Error: No valid FASTA sequences found in input.", file=sys.stderr)
+        sys.exit(1)
+
     current_pattern= None
     if args.pattern:
         current_pattern = args.pattern
@@ -68,7 +73,7 @@ def main():
         sys.exit(1)
 
     regex_str = prosite_to_regex(current_pattern)
-    scan_seq(seq, regex_str)
+    scan_seq(seq_dict, regex_str)
 
 
 #translate prosite pattern to regex string
@@ -110,14 +115,25 @@ def pattern_from_web(prosite_id):
             found=False
             for line in response:
                 line = line.decode('utf-8').rstrip('\n')
-                if line.startswith("AC") and prosite_id in line: #AC = prosite id
-                    found = True
+
+                if line.startswith("AC"): #AC = prosite id
+                    current_ac = line[2:].replace(";", "").strip()
+                    if current_ac == prosite_id:
+                        found = True
+
                 if found and line.startswith("PA"): #PA = pattern
                     return line[2:].strip().rstrip('.') #remove . and PA from pattern
+
+                if found and line.startswith("//"):
+                    break
+
+            if not found:
+                print(f"Error: Prosite ID '{prosite_id}' not found in database.", file=sys.stderr)
+                sys.exit(1)
+
     except Exception as e:
         print(f"Error fetching pattern: {e}", file=sys.stderr)
         sys.exit(1)
-    return None
 
 #example output from bioclient2:
 #gi|15595239|ref|NP_248731.1| probable hemagglutinin [Pseudomonas aeruginosa]    451     LHVDTLGSA

@@ -10,38 +10,36 @@ import argparse
 
 #FASTA bekommen
 parser = argparse.ArgumentParser()
-parser.add_argument('--fasta', required=True)
+parser.add_argument('--fasta',type=argparse.FileType('r'), required=True)
 args = parser.parse_args()
+
+#schon ORF von AUfgabe 10
+def crispr_search(header, genome_parts):
+    crispr_length = 23
+    genome_sequence = "".join(genome_parts).upper()
+    for i in range(len(genome_sequence) - 22):
+        # sucht alle crispr stellen
+        crispr = genome_sequence[i:i + crispr_length]
+        if crispr[21:23] == "GG":
+            print(f"{header}\t{i + 1}")
+            print(crispr)
 
 header = ""
 genome_parts = []
-crispr_length = 23
-#schon ORF von AUfgabe 10
-with open (args.fasta, "r") as file:
-    for line in file:
-        line = line.strip()
 
-        if line.startswith(">"):
-            if header != "":
-                genome_sequence = "".join(genome_parts)
-                for i in range(len(genome_sequence) - 22):
-                    # sucht alle crispr stellen
-                    crispr = genome_sequence[i:i + crispr_length]
-                    if crispr[21:23] == "GG":
-                        print(f"{header}\t{i + 1}")
-                        print(crispr)
-            #header setzen wenn noch keiner oder vorherigen orf gelesen
-            header = line
-            #leeren um es wieder frei für nächsten ORF
-            genome_parts = []
-            continue; #sonst landet header auch in der Sequenz
-        #wenn nicht mit > appenden
-        genome_parts.append(line)
-    #letzter ORF
-    if header != "":
-        genome_sequence = "".join(genome_parts)
-        for i in range(len(genome_sequence) - 22):
-            crispr = genome_sequence[i:i + crispr_length]
-            if crispr[21:23] == "GG":
-                print(f"{header}\t{i + 1}")
-                print(crispr)
+for line in args.fasta:
+    line = line.strip()
+
+    if line.startswith(">"):
+        if header != "":
+            crispr_search(header, genome_parts)
+        # header setzen wenn noch keiner oder vorherigen orf gelesen
+        header = line
+        # leeren um es wieder frei für nächsten ORF
+        genome_parts = []
+        continue;  # sonst landet header auch in der Sequenz
+    # wenn nicht mit > appenden
+    genome_parts.append(line)
+# letzter ORF
+if header != "":
+    crispr_search(header, genome_parts)

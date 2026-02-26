@@ -1,0 +1,11 @@
+CRISPR:
+
+- Funktioniert als Genschere, präzises Schneiden von DNA
+
+- Ursprünglich ein natürliches Immunsystem von Bakterien gegen Viren
+
+- Führt Schere exakt zur gewünschten Erbgut-Stelle die sie Schneiden soll, in CRISPR gespeichert welche Stellen es da gibt
+
+- Ermöglicht das Ausschalten, Reparieren oder Ersetzen von Genen
+
+- Einsatz in der Medizin, Pflanzenzucht und Forschung
