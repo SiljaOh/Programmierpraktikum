@@ -1,0 +1,20 @@
+JMOL Befehle:
+
+rechtsclick aufs schwarze -> console
+
+load =400D lädt mol
+
+zap löscht alles
+
+select protein wählt alle AS aus
+select all 
+
+set ambient 40; set specpower 90;
+
+wireframe 0.3
+wireframe [Wert] zeigt kovalente Bindungen an mit best Dicke
+
+color structure  färbt das Protein automatisch nach seiner Sekundärstruktur, zb alpha helices und beta sheets untersciedlich 
+
+write image png "test.png"  speichert aktuelle Ansicht
+
