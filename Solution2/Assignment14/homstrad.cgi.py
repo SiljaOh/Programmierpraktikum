@@ -11,7 +11,17 @@ import mysql.connector
 DB_HOST = "mysql2-ext.bio.ifi.lmu.de"
 DB_NAME = "bioprakt17"
 DB_USER = "bioprakt17"
-DB_PW   = os.environ.get("MYSQL_PW", "")
+# Passwort aus Datei lesen (CGI bekommt oft keine ENV Variablen)
+PW_FILE = os.path.join(os.path.dirname(__file__), ".secrets", "mysql_pw.txt")
+
+def load_pw():
+    try:
+        with open(PW_FILE, "r") as f:
+            return f.read().strip()
+    except Exception:
+        return ""
+
+DB_PW = load_pw()
 
 
 def norm_id(s: str) -> str:
