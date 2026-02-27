@@ -1,62 +1,8 @@
 #!/usr/bin/python3
 import re
 import urllib.request
-import sys
 from mycgi import Form
-
-
-#LOGIK VON PSSCAN.PY (angepasst)
-
-def parse_fasta_content(content):
-    sequences = {}
-    current_header = None
-    current_seq = []
-    # .splitlines() statt Dateischleife für Web-Input
-    for line in content.splitlines():
-        line = line.strip()
-        if not line: continue
-        if line.startswith(">"):
-            if current_header:
-                sequences[current_header] = "".join(current_seq)
-            current_header = line[1:]
-            current_seq = []
-        else:
-            current_seq.append(line)
-    if current_header:
-        sequences[current_header] = "".join(current_seq)
-    return sequences
-
-
-def prosite_to_regex(pattern):
-    regex = pattern.replace("<","^").replace(">","$")
-    #{ABC} -> [^ABC]
-    regex = re.sub(r'\{([A-Za-z]+)\}', r'[^\1]', regex)
-    # 'x' --> '.'
-    regex = regex.replace("x", ".")
-    #remove -
-    regex = regex.replace("-", "")
-    # (n) or (n, m) -> {n} or {n, m}
-    regex = re.sub(r'\((\d+(?:,\d+)?)\)', r'{\1}', regex)
-
-    return regex
-
-
-
-def pattern_from_web(prosite_id):
-    url = "https://ftp.expasy.org/databases/prosite/prosite.dat"
-    try:
-        with urllib.request.urlopen(url) as response:
-            found = False
-            for line in response:
-                line = line.decode('utf-8').rstrip('\n')
-                if line.startswith("AC") and prosite_id in line:
-                    found = True
-                if found and line.startswith("PA"):
-                    return line[2:].strip().rstrip('.')
-    except Exception:
-        return None
-    return None
-
+import psscan
 
 
 def main():
@@ -240,11 +186,11 @@ def main():
     web_id = form.getvalue("web_id")
 
     if fasta_data:
-        current_pattern = user_pattern if user_pattern else (pattern_from_web(web_id) if web_id else None)
+        current_pattern = user_pattern if user_pattern else (psscan.pattern_from_web(web_id) if web_id else None)
 
         if current_pattern:
-            regex_str = prosite_to_regex(current_pattern)
-            sequences = parse_fasta_content(fasta_data)
+            regex_str = psscan.prosite_to_regex(current_pattern)
+            sequences = psscan.parse_fasta_content(fasta_data)
 
             print(f"<div style='margin-top:40px;'>")
             print(f"<h3>Analyse-Ergebnisse für Pattern: <code>{current_pattern}</code></h3>")
