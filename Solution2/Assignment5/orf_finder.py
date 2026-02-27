@@ -1,146 +1,125 @@
 #!/usr/bin/env python3
+import argparse, sys, getpass
 
-from __future__ import annotations
+STOP = {"TAA", "TAG", "TGA"}
 
-import argparse
-import sys
-from dataclasses import dataclass
-from pathlib import Path
-from typing import Dict, Iterable, Iterator, List, Optional, Tuple
-
-STOP_CODONS = {"TAA", "TAG", "TGA"}
-START_CODON = "ATG"
-
-
-@dataclass(frozen=True)
-class FastaRecord:
-    header: str
-    seq: str
-
-
-def read_fasta(path: str | Path) -> Iterator[FastaRecord]:
-
-    header: Optional[str] = None
-    chunks: List[str] = []
-
-    with open(path, "r", encoding="utf-8") as f:
-        for raw in f:
-            line = raw.strip()
+def read_fasta(path):
+    h, s = None, []
+    with open(path) as f:
+        for line in f:
+            line = line.strip()
             if not line:
                 continue
             if line.startswith(">"):
-                # flush previous record
-                if header is not None:
-                    seq = "".join(chunks).replace(" ", "").upper()
-                    yield FastaRecord(header=header, seq=seq)
-                header = line[1:].strip()
-                chunks = []
+                if h is not None:
+                    yield h, "".join(s).upper()
+                h, s = line[1:].strip(), []
             else:
-                chunks.append(line)
+                s.append(line)
+        if h is not None:
+            yield h, "".join(s).upper()
 
-    # flush last record
-    if header is not None:
-        seq = "".join(chunks).replace(" ", "").upper()
-        yield FastaRecord(header=header, seq=seq)
+def revcomp(s):
+    comp = {"A":"T","T":"A","C":"G","G":"C"}
+    return "".join(comp.get(b, "N") for b in reversed(s.upper()))
 
-
-def revcomp(seq: str) -> str:
-
-    comp: Dict[str, str] = {
-        "A": "T",
-        "T": "A",
-        "C": "G",
-        "G": "C",
-        "N": "N",
-    }
-    # map unknowns to N
-    return "".join(comp.get(b, "N") for b in reversed(seq.upper()))
-
-
-def find_orfs_in_one_strand(seq: str) -> List[str]:
-
-    orfs: List[str] = []
-    n = len(seq)
-
-    for frame in (0, 1, 2):
-        current_start: Optional[int] = None  # base index of the ATG within seq
-
-        # step codon-wise in this frame
-        for i in range(frame, n - 2, 3):
-            codon = seq[i : i + 3]
-            if current_start is None:
-                if codon == START_CODON:
-                    current_start = i
+def find_orfs(seq):
+    res, n = [], len(seq)
+    for frame in (0,1,2):
+        start = None
+        for i in range(frame, n-2, 3):
+            codon = seq[i:i+3]
+            if start is None:
+                if codon == "ATG":
+                    start = i
             else:
-                if codon in STOP_CODONS:
-                    # ORF includes the stop codon
-                    orf_seq = seq[current_start : i + 3]
-                    orfs.append(orf_seq)
-                    current_start = None
-                # else: keep scanning; ignore internal ATGs by design
+                if codon in STOP:
+                    res.append((seq[start:i+3], frame, start, i+2))
+                    start = None
+    return res
 
-    return orfs
-
-
-def format_fasta(header: str, seq: str, width: int = 80) -> str:
-    """
-    FASTA formatting with optional line wrapping.
-    """
-    if width <= 0:
-        return f">{header}\n{seq}\n"
-    lines = [seq[i : i + width] for i in range(0, len(seq), width)]
-    return f">{header}\n" + "\n".join(lines) + "\n"
-
-
-def parse_args(argv: Optional[List[str]] = None) -> argparse.Namespace:
-    p = argparse.ArgumentParser(description="Find ORFs (ATG..Stop) in 6 frames and output as FASTA.")
-    p.add_argument("--fasta", required=True, help="Input FASTA file (can contain multiple records).")
-    p.add_argument("--output", default=None, help="Output FASTA file (default: stdout).")
-    # --db is intentionally not implemented per user request
-    return p.parse_args(argv)
-
-
-def main(argv: Optional[List[str]] = None) -> int:
-    args = parse_args(argv)
-
-    out_handle = None
+def connect_mysql(host, user, dbname, password):
     try:
-        if args.output:
-            out_handle = open(args.output, "w", encoding="utf-8")
-            out = out_handle
-        else:
-            out = sys.stdout
+        import mysql.connector
+        return mysql.connector.connect(host=host, user=user, password=password, database=dbname)
+    except Exception:
+        import pymysql
+        return pymysql.connect(host=host, user=user, password=password, database=dbname, autocommit=False)
 
-        orf_counter_global = 0
+def get_or_create_organism_id(cur, name):
+    cur.execute("SELECT organism_id FROM organism WHERE name=%s", (name,))
+    row = cur.fetchone()
+    if row:
+        return row[0]
+    cur.execute("INSERT INTO organism (name) VALUES (%s)", (name,))
+    return cur.lastrowid
 
-        for rec in read_fasta(args.fasta):
-            # Find ORFs on forward strand
-            forward_orfs = find_orfs_in_one_strand(rec.seq)
+def insert_orf(cur, header, idx, strand, frame, start, end, seq, organism_id):
+    desc = "ORF strand=%s frame=%d start=%d end=%d" % (strand, frame, start, end)
+    cur.execute(
+        "INSERT INTO sequence (accession, description, seq, length, organism_id) VALUES (%s,%s,%s,%s,%s)",
+        (None, desc, seq, len(seq), organism_id)
+    )
+    sid = cur.lastrowid
+    cur.execute(
+        "INSERT INTO source_entry (source, source_key, sequence_id) VALUES (%s,%s,%s)",
+        ("orf_finder", "%s_%d" % (header, idx), sid)
+    )
 
-            # Find ORFs on reverse-complement strand
-            rc = revcomp(rec.seq)
-            reverse_orfs = find_orfs_in_one_strand(rc)
+def main():
+    p = argparse.ArgumentParser()
+    p.add_argument("--fasta", required=True)
+    p.add_argument("--output")
+    p.add_argument("--db", action="store_true")
+    p.add_argument("--db-host", default="mysql2-ext.bio.ifi.lmu.de")
+    p.add_argument("--db-user", default="bioprakt17")
+    p.add_argument("--db-name", default="bioprakt17")
+    p.add_argument("--db-pass")
+    p.add_argument("--organism")
+    args = p.parse_args()
 
-            # Output all ORFs for this record, numbered sequentially per input record
-            idx = 0
-            for orf_seq in forward_orfs + reverse_orfs:
-                header = f"{rec.header}_{idx}"
-                out.write(format_fasta(header, orf_seq, width=80))
-                idx += 1
-                orf_counter_global += 1
+    out = open(args.output, "w") if args.output else sys.stdout
 
-        return 0
+    conn = None
+    cur = None
+    organism_id = None
 
-    except FileNotFoundError:
-        print(f"ERROR: Input FASTA not found: {args.fasta}", file=sys.stderr)
-        return 2
-    except Exception as e:
-        print(f"ERROR: {e}", file=sys.stderr)
-        return 1
-    finally:
-        if out_handle is not None:
-            out_handle.close()
+    if args.db:
+        pw = args.db_pass if args.db_pass is not None else getpass.getpass("DB password: ")
+        conn = connect_mysql(args.db_host, args.db_user, args.db_name, pw)
+        cur = conn.cursor()
+        if args.organism:
+            organism_id = get_or_create_organism_id(cur, args.organism)
 
+    for header, seq in read_fasta(args.fasta):
+        fwd = find_orfs(seq)
+        rev = find_orfs(revcomp(seq))
+
+        idx = 0
+        for (orfseq, frame, start, end) in fwd:
+            out.write(">%s_%d\n%s\n" % (header, idx, orfseq))
+            if cur is not None:
+                insert_orf(cur, header, idx, "+", frame, start, end, orfseq, organism_id)
+            idx += 1
+
+        for (orfseq, frame, start, end) in rev:
+            out.write(">%s_%d\n%s\n" % (header, idx, orfseq))
+            if cur is not None:
+                insert_orf(cur, header, idx, "-", frame, start, end, orfseq, organism_id)
+            idx += 1
+
+        if conn is not None:
+            conn.commit()
+
+    if args.output:
+        out.close()
+    if cur is not None:
+        cur.close()
+    if conn is not None:
+        conn.close()
 
 if __name__ == "__main__":
-    raise SystemExit(main())
+    main()
+
+
+
