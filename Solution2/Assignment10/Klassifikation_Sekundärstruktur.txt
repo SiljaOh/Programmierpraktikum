@@ -1,0 +1,18 @@
+Vorgegebene Datenbank ist aktuell down
+
+mit SCOP:
+
+
+1MBN: viele Helices, Globin-like, kompakte alpha-Helical-Struktur
+
+1BAF: All-alpha, BAF-like / DNA-binding, sehr kleiner & kompakter alpha-Helical-Fold, dicht
+
+1TIM: alpha/beta barrel,TIM beta/alpha-barrel alpha/beta-Struktur bei der beta-Stränge einen inneren Ring bilden, der von alpha-Helices umgeben ist
+
+256b: alpha+beta gemischt, Lysozyme-like, Mischstruktur aus beiden Typen, die zwei Domänen mit einer Spalte dazwischen bildet
+
+
+Man sieht, dass 1MBN und 1BAF durch ihre kompakten alpha - Helices in die „All-alpha“-Klasse fallen, während 1TIM und 256b komplexere Mischstrukturen haben. Das erkennt man auch in den Berechnungen ->„All-alpha“-Proteine haben signifikant höheren Anteil an Sekundärstrukturen
+
+
+
