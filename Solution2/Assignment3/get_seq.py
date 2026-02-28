@@ -35,6 +35,10 @@ connection = pymysql.connect(
 )
 
 # SQL
+# JOIN: source_entry wird mit sequence über sequence_id verknüpft
+#   se.source = gewünschte Quelle
+#   se.source_key IN = Liste der übergebenen IDs
+# ORDER BY -> reproduzierbare/geordnete Ausgabe
 placeholders = ",".join(["%s"] * len(args.id))
 sql = f"""
     SELECT se.source_key, s.accession, s.seq
@@ -44,18 +48,29 @@ sql = f"""
       AND se.source_key IN ({placeholders})
     ORDER BY se.source_key
 """
+
+# Parameterliste für die vorbereitete SQL-Abfrage
+# erstes Element: source
+# danach: alle übergebenen IDs
 params = [args.source] + args.id
 
-# SQL Query ausführen
+# SQL-Query ausführen
+# parametrisierte Ausführung: SQL-Struktur und Werte werden getrennt übergeben
+# verhindert Manipulation der Abfrage (SQL-Injection)
 try:
     with connection.cursor() as cur:
-        cur.execute(sql, params)
+        cur.execute(sql, params)        # alle Treffer als Liste von Dictionaries
         rows = cur.fetchall()
 finally:
-    connection.close()
+    connection.close()                    # DB-Verbindung schließen (immer)
 
 # FASTA Ausgabe
 for row in rows:
     header = row["accession"] if row["accession"] else row["source_key"]
     print(f">{header}")
     print(row["seq"])
+
+# __name__ == "__main__" nur beim direkten Start der Datei
+# d.h. erhindert Ausführung beim Import als Modul
+if __name__ == "__main__":
+    main()
