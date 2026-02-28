@@ -1,0 +1,59 @@
+Auswertung der ORF-Statistik
+
+Datensatz: Chromosom I von Saccharomyces cerevisiae (sce_chr1.fna)
+
+Verglichen wurden: 1) Reale Hefesequenz 2) Zufallssequenz mit GC = 0.5
+3) Zufallssequenz mit GC = GC-Gehalt der Hefesequenz
+
+Analyseparameter:
+
+Aminosäurelängenbereich: 76–100 AA Bin-Größe: 5 AA
+
+Ergebnisse
+
+1) Hefe – Chromosom I
+
+Gesamtanzahl ORFs (76–100 AA): 80
+
+  ---------------------- --------
+  Längenbereich (AA)     Anzahl
+
+  76–80 81–85 86–90      21 20 19
+  91–95 96–100           9 11
+  ---------------------- --------
+
+2) Zufallssequenz (GC = 0.5)
+
+Gesamtanzahl ORFs (76–100 AA): 112
+
+  ---------------------- --------
+  Längenbereich (AA)     Anzahl
+
+  76–80 81–85 86–90      36 27 18
+  91–95 96–100           16 15
+  ---------------------- --------
+
+3) Zufallssequenz (GC = GC der Hefe)
+
+Gesamtanzahl ORFs (76–100 AA): 44
+
+  ---------------------- --------
+  Längenbereich (AA)     Anzahl
+
+  76–80 81–85 86–90      14 7 12
+  91–95 96–100           6 5
+  ---------------------- --------
+
+Interpretation
+
+Die reale Hefesequenz zeigt eine strukturierte Verteilung von ORFs im
+Bereich 76–100 Aminosäuren.
+
+
+Die Zufallssequenz mit dem GC-Gehalt der Hefe enthält weniger ORFs in
+diesem Bereich. Ein niedrigerer GC-Gehalt führt zu mehr AT-reichen
+Stopcodons, wodurch ORFs im Durchschnitt kürzer werden.
+
+Fazit: Das Hefegenom unterscheidet sich in der ORF-Längenverteilung
+deutlich von einer Zufallssequenz und zeigt damit eine nicht-zufällige
+genomische Struktur.
