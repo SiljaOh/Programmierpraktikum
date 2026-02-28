@@ -1,13 +1,14 @@
 #!/usr/bin/python3
 import argparse
+import os
 import subprocess
+import sys
 import webbrowser
 
 #JMOL räumliche darstellung Moleküle, drehen,zoomen, messen, ...
-
 parser = argparse.ArgumentParser()
 parser.add_argument('--id', required=True)
-parser.add_argument('--output', type=argparse.FileType('w'))
+parser.add_argument('--output')
 parser.add_argument('--html', action="store_true")
 parser.add_argument('--colourized', action='store_true')
 args = parser.parse_args()
@@ -15,15 +16,14 @@ args = parser.parse_args()
 
 if len(args.id) != 4:
     print("Ungültige ID")
+    sys.exit(1)
 else:
     pdb_id = args.id
-
 
 if args.output:
     output_name = args.output
 else:
     output_name= f"{pdb_id}.png"
-
 
 jmol_commands= f"load={pdb_id}; cartoon on;"
 if args.colourized:
@@ -31,8 +31,8 @@ if args.colourized:
 jmol_commands_web = jmol_commands
 jmol_commands+= f"write image png '{output_name}'; "
 
-#-n damit im hintergrund läuft, -j führt die commands aus
-subprocess.run(["java", "-jar", "Jmol.jar", "-n", "-j", jmol_commands])
+if os.path.exists("Jmol.jar"):
+    subprocess.run(["java", "-jar", "Jmol.jar", "-n", "-j", jmol_commands])
 
 #html für die website machen
 if args.html:
@@ -63,12 +63,11 @@ if args.html:
     </body>
     </html>
     """
-
+    # Ändere das hier:
+    html_filename = "index.html"
     # HTML-Datei kurzzeitig speichern
-    args.output.write(html_content)
+    with open(html_filename, "w") as f:
+        f.write(html_content)
+    # Die Datei automatisch im browser öffnen
+    webbrowser.open('http://localhost:8000/index.html')
 
-    # Die Datei automatisch im Standardbrowser öffnen
-    webbrowser.open('http://localhost:8000/jsmol_website.html')
-
-#schliessen?
-#was wenn - als output
