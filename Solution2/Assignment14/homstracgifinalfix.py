@@ -1,18 +1,17 @@
 #!/usr/bin/env python3
-# CGI: HOMSTRAD Alignments zu PDB-ID(s) anzeigen inkl. Sekundärstruktur
+
 
 import os
 import html
 import cgi
 import mysql.connector
 
-# --- DB Einstellungen
 DB_HOST = "mysql2-ext.bio.ifi.lmu.de"
 DB_NAME = "bioprakt17"
 DB_USER = "bioprakt17"
 
-
 PW_FILE = os.path.join(os.path.dirname(__file__), ".secrets", "mysql_pw.txt")
+
 
 def load_pw():
     try:
@@ -21,7 +20,9 @@ def load_pw():
     except Exception:
         return ""
 
+
 DB_PW = load_pw()
+
 
 def norm_id(s: str) -> str:
     s = (s or "").strip().replace(" ", "").lower()
@@ -40,50 +41,53 @@ def norm_id(s: str) -> str:
     # sonst nur 4-stellige PDB-ID
     return s[:4]
 
+
 def connect():
     return mysql.connector.connect(
         host=DB_HOST, user=DB_USER, password=DB_PW, database=DB_NAME
     )
 
+
 def fetchall(cur, sql, params=()):
     cur.execute(sql, params)
     return cur.fetchall()
+
 
 def fetchone(cur, sql, params=()):
     cur.execute(sql, params)
     return cur.fetchone()
 
-def resolve_keys(cur, pdb_or_key: str):
 
+def resolve_keys(cur, pdb_or_key: str):
     if not pdb_or_key:
         return []
 
     # Wenn Nutzer schon eine Chain angegeben hat: versuche exakt zu matchen
     if "_" in pdb_or_key:
         row = fetchone(cur,
-            "SELECT source_key FROM source_entry "
-            "WHERE LOWER(source)='pdb' AND source_key=%s",
-            (pdb_or_key,))
+                       "SELECT source_key FROM source_entry "
+                       "WHERE LOWER(source)='pdb' AND source_key=%s",
+                       (pdb_or_key,))
         if row:
             return [row[0]]
-
 
         pdb, chain = pdb_or_key.split("_", 1)
         alt = f"{pdb}{chain}"
         row = fetchone(cur,
-            "SELECT source_key FROM source_entry "
-            "WHERE LOWER(source)='pdb' AND source_key=%s",
-            (alt,))
+                       "SELECT source_key FROM source_entry "
+                       "WHERE LOWER(source)='pdb' AND source_key=%s",
+                       (alt,))
         return [row[0]] if row else []
 
     # Nur pdb-ID: nimm alle Keys, die mit pdb anfangen (alle Chains/Formate)
     pattern = pdb_or_key + "%"
     rows = fetchall(cur,
-        "SELECT source_key FROM source_entry "
-        "WHERE LOWER(source)='pdb' AND source_key LIKE %s "
-        "ORDER BY source_key",
-        (pattern,))
+                    "SELECT source_key FROM source_entry "
+                    "WHERE LOWER(source)='pdb' AND source_key LIKE %s "
+                    "ORDER BY source_key",
+                    (pattern,))
     return [r[0] for r in rows]
+
 
 def families_for_key(cur, source_key: str):
     rows = fetchall(cur, """
@@ -94,6 +98,7 @@ def families_for_key(cur, source_key: str):
         ORDER BY f.name
     """, (source_key,))
     return rows  # list of (family_id, family_name)
+
 
 def common_families(cur, key1: str, key2: str):
     rows = fetchall(cur, """
@@ -107,14 +112,15 @@ def common_families(cur, key1: str, key2: str):
     """, (key1, key2))
     return rows
 
+
 def alignment_id_for_family(cur, family_name: str):
     row = fetchone(cur,
-        "SELECT alignment_id FROM alignment WHERE name=%s AND type='msa'",
-        (family_name,))
+                   "SELECT alignment_id FROM alignment WHERE name=%s AND type='msa'",
+                   (family_name,))
     return row[0] if row else None
 
-def msa_rows_with_ss(cur, alignment_id: int):
 
+def msa_rows_with_ss(cur, alignment_id: int):
     rows = fetchall(cur, """
         SELECT
             se.source_key,
@@ -130,6 +136,7 @@ def msa_rows_with_ss(cur, alignment_id: int):
     """, (alignment_id,))
     # rows: list of (source_key, sequence_id, aligned_seq, aligned_ss)
     return rows
+
 
 def html_header(title="HOMSTRAD Viewer"):
     print("Content-Type: text/html; charset=utf-8\n")
@@ -149,8 +156,10 @@ code{{background:#eee; padding:2px 4px;}}
 <h2>{html.escape(title)}</h2>
 """)
 
+
 def html_footer():
     print("</body></html>")
+
 
 def show_form(pdb1="", pdb2=""):
     print("""
@@ -164,6 +173,7 @@ def show_form(pdb1="", pdb2=""):
 <hr>
 """.format(p1=html.escape(pdb1), p2=html.escape(pdb2)))
 
+
 def show_msa(cur, family_name: str, highlight_keys=None):
     highlight_keys = set(highlight_keys or [])
     aid = alignment_id_for_family(cur, family_name)
@@ -173,7 +183,8 @@ def show_msa(cur, family_name: str, highlight_keys=None):
 
     rows = msa_rows_with_ss(cur, aid)
     print(f"<h3>Family: {html.escape(family_name)} (MSA)</h3>")
-    print('<div class="small">Ausgabe: pro Sequenz eine SS-Zeile (aligned_ss) + SEQ-Zeile (aligned_seq). Gaps sind synchron.</div>')
+    print(
+        '<div class="small">Ausgabe: pro Sequenz eine SS-Zeile (aligned_ss) + SEQ-Zeile (aligned_seq). Gaps sind synchron.</div>')
 
     for skey, seq_id, aseq, ass in rows:
         label = skey
@@ -188,6 +199,7 @@ def show_msa(cur, family_name: str, highlight_keys=None):
               + "SS : " + html.escape(ss_line) + "\n"
               + "SEQ: " + html.escape(aseq) + "\n"
               + "</pre>")
+
 
 def show_pairwise_from_msa(cur, family_name: str, key1: str, key2: str):
     aid = alignment_id_for_family(cur, family_name)
@@ -213,6 +225,7 @@ def show_pairwise_from_msa(cur, family_name: str, key1: str, key2: str):
     print("SS : " + html.escape(ss2 if ss2 else "(not available)"))
     print("SEQ: " + html.escape(a2))
     print("</pre>")
+
 
 def main():
     html_header("HOMSTRAD alignment viewer")
@@ -291,7 +304,6 @@ def main():
                 html_footer()
                 return
 
-
             print("<p><b>Keine gemeinsame Familie.</b> Zeige families separat.</p>")
 
             print("<h3>Families/Alignments für PDB-ID 1</h3>")
@@ -310,6 +322,7 @@ def main():
         conn.close()
 
     html_footer()
+
 
 if __name__ == "__main__":
     main()

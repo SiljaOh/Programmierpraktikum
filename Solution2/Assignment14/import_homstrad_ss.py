@@ -6,7 +6,6 @@ import argparse
 from pathlib import Path
 from typing import List, Dict, Optional, Tuple
 
-# Pure-Python MySQL client. Install via: pip3 install --user pymysql
 import pymysql
 
 SS_HEADER = "secondary structure and phi angle"
@@ -22,11 +21,10 @@ def parse_tem_secondary_structure(tem_path: Path) -> List[str]:
     while i < len(lines):
         line = lines[i].strip()
 
-        # Look for ">P1;..."
         if line.startswith(">P1;"):
-            # Next line may be "sequence" OR "secondary structure and phi angle" etc.
+
             if i + 1 < len(lines) and lines[i + 1].strip() == SS_HEADER:
-                # Collect subsequent lines until we hit a line containing '*'
+
                 j = i + 2
                 parts: List[str] = []
                 while j < len(lines):
@@ -83,7 +81,7 @@ def ensure_secondary_structure_pk(conn):
 
     for cols in unique_keys.values():
         if cols[:2] == ["alignment_id", "sequence_id"]:
-            return  # good enough
+            return
 
     try:
         with conn.cursor() as cur:
