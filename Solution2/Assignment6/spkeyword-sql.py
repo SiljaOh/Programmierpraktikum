@@ -1,11 +1,26 @@
 #!/usr/bin/env python3
 import argparse
 import pymysql
+import getpass
 
 # ======= BLATT 1 (Aufgabe 6) – SwissProt swissprot45.dat Parsing (spkeyword.py)
 # ssh -p 12 fiocco@bioclient2.bio.ifi.lmu.de
 # mysql -h mysql2-ext.bio.ifi.lmu.de -u bioprakt17 bioprakt17 -p
 # user="bioprakt17"
+
+# ======= BLATT 2 (Aufgabe 6) – SwissProt SQL-Abfrage (spkeyword-sql.py)
+# spkeyword.py --keyword <k1> <k2> [--swissprot <file>|--db]
+# " | " --> entweder <file> oder <db> lesen
+
+# Remote-DB
+# ssh -p 12 fiocco@bioclient2.bio.ifi.lmu.de
+# mysql -h mysql2-ext.bio.ifi.lmu.de -u bioprakt17 bioprakt17 -p
+# user="bioprakt17"
+
+# Befehle in MariaDB
+# \q - MariaDB beenden
+# \c - Query abbrechen
+
 
 def norm_kw(s: str) -> str:
     s = s.strip().strip('"').strip("'")
@@ -73,8 +88,10 @@ def build_parser():
     return p
 
 def process(entry, wanted):
-    acs = []
-    kw_buffer = []
+    # entry = Liste aller Zeilen eines SwissProt-Eintrags (bis "//")
+    # wanted = Menge der gesuchten Keywords
+    acs = []             # Liste der Accession-Nummern
+    kw_buffer = []       # temporärer Speicher für rohe bzw. unverarbeitete KW-Zeilen
 
     for line in entry:
         if line.startswith("AC   "):
@@ -95,7 +112,7 @@ def process(entry, wanted):
         if t:
             kws.add(t)
 
-    if not wanted.isdisjoint(kws):
+    if not wanted.isdisjoint(kws):          # prüft, ob mindestens ein Keyword übereinstimmt
         return acs
 
     return []
@@ -103,17 +120,21 @@ def process(entry, wanted):
 # ssh -p 12 fiocco@bioclient2.bio.ifi.lmu.de
 # mysql -h mysql2-ext.bio.ifi.lmu.de -u bioprakt17 bioprakt17 -p
 # user="bioprakt17"
-# password="$1$18yyYqpW$y//O6M/6c6ke8EGazjJTx/"
+# dbpass = getpass.getpass("DB password: ")
 # MariaDB = MySQL-kompatible Datenbank
 # Passwort explizit oder über os.environ (und nicht im Code gespeichert)?
 
 def searchinDB_AC(wanted):
     #Liste von AC-Codes aus unserer Datenbank
+    # DB-Passwort interaktiv abfragen (nicht im Code speichern)
+    # DB-Passwort einmal abfragen und an die DB-Funktion weitergeben
+    dbpass = getpass.getpass("DB password: ")
+
     connection = pymysql.connect(
         host="mysql2-ext.bio.ifi.lmu.de",
         port=3306,
         user="bioprakt17",
-        password="$1$18yyYqpW$y//O6M/6c6ke8EGazjJTx/",
+        password=dbpass,
         database="bioprakt17"
     )
 
@@ -147,42 +168,45 @@ def searchinDB_AC(wanted):
     ORDER BY s.accession    
     """
 
-    cursor.execute(sql_search, keyword_list)
-    results = cursor.fetchall()
+    # parametrisierte Ausführung:
+    cursor.execute(sql_search, keyword_list)            # SQL-Struktur und Werte werden getrennt übergeben (Schutz vor SQL-Injection)
+    results = cursor.fetchall()                         # Treffer holen (als Liste von Tupeln)
     cursor.close()
     connection.close()
 
-    return [row[0] for row in results]
+    return [row[0] for row in results]                  # Rückgabe nur der ersten Spalte/row[0] (AC) als einfache Liste
 
 def main():
-    args = build_parser().parse_args()
+    args = build_parser().parse_args()                  # Kommandozeilenargumente einlesen (--keyword, --swissprot oder --db)
     # Verzweigung
-    if args.db:
-        wanted = set(norm_kw(k) for k in args.keyword)
-        wanted.discard("")
-        accessioncodes = searchinDB_AC(wanted)
+    # --- A) DB-Modus ---
+    if args.db:                                         # Falls --db gesetzt ist
+        wanted = set(norm_kw(k) for k in args.keyword)  # Keywords "normalisieren" und als Menge speichern
+        wanted.discard("")                              # leere Einträge entfernen
+        accessioncodes = searchinDB_AC(wanted)          # DB-Abfrage durchführen -> Liste von Accessions (AC)
 
-        for ac in accessioncodes:
+        for ac in accessioncodes:                       # jede gefundene Accession wird ausgegeben
             print(ac)
 
         return
 
+    # --- B) File-Modus (SwissProt-Datei) ---
     wanted = set(norm_kw(k) for k in args.keyword)
     wanted.discard("")
 
-    hits = set()
-    entry = []
+    hits = set()                                        # Menge aller gefundenen Accessions (verhindert Duplikate als Set)
+    entry = []                                          # sammelt Zeilen eines SwissProt-Eintrags bis "//"
 
-    for line in args.swissprot:
-        line = line.rstrip("\n")
+    for line in args.swissprot:                         # Datei zeilenweise lesen (wie gehabt in Blatt 1)
+        line = line.rstrip("\n")                        # Zeilenumbruch entfernen
 
-        if line.startswith("//"):
-            if entry:
-                for ac in process(entry, wanted):
-                    hits.add(ac)
-            entry = []
+        if line.startswith("//"):                       # Ende eines SwissProt-Eintrags
+            if entry:                                   # Eintrag nicht leer ist -> verarbeiten
+                for ac in process(entry, wanted):       # AC + KW prüfen
+                    hits.add(ac)                        # gefundene AC speichern
+            entry = []                                  # aktueller Block ist abgeschlossen → Liste leeren für den nächsten Eintrag
         else:
-            entry.append(line)
+            entry.append(line)                          # Zeile im aktuellen Eintrag sammeln
 
     # Datei endet eventuell nicht mit //
     if entry:
@@ -196,15 +220,3 @@ if __name__ == "__main__":
     main()
 
 
-# ======= BLATT 2 (Aufgabe 6) – SwissProt SQL-Abfrage (spkeyword-sql.py)
-# spkeyword.py --keyword <k1> <k2> [--swissprot <file>|--db]
-# " | " --> entweder <file> oder <db> lesen
-
-# Remote-DB
-# ssh -p 12 fiocco@bioclient2.bio.ifi.lmu.de
-# mysql -h mysql2-ext.bio.ifi.lmu.de -u bioprakt17 bioprakt17 -p
-# user="bioprakt17"
-
-# Befehle in MariaDB
-# \q - MariaDB beenden
-# \c - Query abbrechen
