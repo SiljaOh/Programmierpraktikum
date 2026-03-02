@@ -23,7 +23,7 @@ public class Gor1 extends GorMethod{
     }
 
     @Override
-    public void handleWindow(String window, int position, char targetStrucutre) {
+    public void handleWindow(String window, int position, char targetStructure) {
 
     }
 }
