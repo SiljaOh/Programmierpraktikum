@@ -23,7 +23,7 @@ else:
 output = args.output
 
 if args.fasta:
-    url = f"https://files.rcsb.org/download/{pdb_id}.fasta"
+    url = f"https://www.rcsb.org/fasta/entry/{pdb_id}"
 else:
     url = f"https://files.rcsb.org/download/{pdb_id}.pdb"
 
