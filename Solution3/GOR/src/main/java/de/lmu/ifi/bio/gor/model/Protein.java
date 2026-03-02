@@ -1,10 +1,9 @@
 package de.lmu.ifi.bio.gor.model;
 
 public class Protein {
-    private String id;
+    private String id; //PDB
     private String sequence; // Die AS Zeile
     private String structure; // Die SS Zeile
-
 
     public String getId() {
         return id;
