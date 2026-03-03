@@ -5,6 +5,7 @@ import de.lmu.ifi.bio.gor.methods.GorMethod;
 import de.lmu.ifi.bio.gor.model.Protein;
 
 import java.io.IOException;
+import java.util.List;
 
 public class Predict {
 
@@ -49,14 +50,14 @@ public class Predict {
         Gor1 gor1 = new Gor1();
         gor1.getMatrix().loadModel(modelPath);
 
-        Protein protein = GorMethod.readFasta(seqPath);
+        List<Protein> proteins = GorMethod.readFasta(seqPath);
 
-
-        String result = gor1.predict(protein.getSequence());
-
-        System.out.println(">" + protein.getId());
-        System.out.println("AS " + protein.getSequence());
-        System.out.println("PS " + result);
+        for (Protein protein : proteins) {
+            String result = gor1.predict(protein.getSequence());
+            System.out.println(">" + protein.getId());
+            System.out.println("AS " + protein.getSequence());
+            System.out.println("PS " + result);
+        }
     }
 }
 
