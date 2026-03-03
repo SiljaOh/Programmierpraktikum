@@ -2,6 +2,7 @@ package de.lmu.ifi.bio.gor.cli;
 
 import de.lmu.ifi.bio.gor.io.SeclibParser;
 import de.lmu.ifi.bio.gor.methods.Gor1;
+import de.lmu.ifi.bio.gor.methods.Gor3;
 import de.lmu.ifi.bio.gor.methods.GorMethod;
 import de.lmu.ifi.bio.gor.model.Protein;
 
@@ -45,7 +46,7 @@ public class Train {
         switch (methodSelection.toLowerCase()) {
             case "gor3":
             case "3":
-                //gor = new Gor3();
+                gor = new Gor3();
                 break;
             case "gor4":
             case "4":
@@ -65,9 +66,6 @@ public class Train {
 
         // 3. Speichern (schreibt die Datei, die du mir per cat gezeigt hast)
         gor.getMatrix().save(modelOutputPath);
-
-
-
 
 
     }
