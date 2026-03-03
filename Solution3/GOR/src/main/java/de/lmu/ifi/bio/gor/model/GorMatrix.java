@@ -14,6 +14,7 @@ public class GorMatrix {
     int[] totalCountsperState = new int[3];
     int totalAA = 0;
 
+
     //train
     // Hilfsmethode um 20 Zahlen in Matrix die Aminosäuren zuzuordnen
     //zb. A ist Index 0 in Matrix
@@ -131,6 +132,7 @@ public class GorMatrix {
                 if (values.length == 18) {
                     //AS als zahl speichern
                     int aa = getAaIndex(values[0].charAt(0));
+                    if (aa == -1) continue;
                     for (int pos = 0; pos < 17; pos++) {
                         counts[stateIdx][pos][aa] = Integer.parseInt(values[pos + 1]);
                     }
@@ -138,11 +140,11 @@ public class GorMatrix {
             }
         }
         calculateTotalsFromCounts();
-        calculateScores1();
+        calculateScores();
     }
 
-    //predict VERSCHIEBENNN ODER ???
-    public void calculateScores1() {
+
+    public void calculateScores() {
 
         for (int s = 0; s < 3; s++) {
 
@@ -172,8 +174,6 @@ public class GorMatrix {
         }
     }
 
-    
-
     //predict
     public char getBestState(String window) {
         double[] totals = new double[3];
@@ -181,6 +181,7 @@ public class GorMatrix {
             for (int p = 0; p < 17; p++) {
                 char aa = window.charAt(p);
                 int aaIdx = getAaIndex(aa);
+                //x oder unbekannt
                 if (aaIdx == -1) continue;
                 totals[s] += scores[s][p][aaIdx];
             }
@@ -195,4 +196,5 @@ public class GorMatrix {
         }
         return 'C';
     }
+
 }

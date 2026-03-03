@@ -1,8 +1,6 @@
 package de.lmu.ifi.bio.gor.model;
 
-import java.io.FileWriter;
-import java.io.IOException;
-import java.io.PrintWriter;
+import java.io.*;
 
 public class Gor3Matrix extends GorMatrix {
 
@@ -19,7 +17,7 @@ public class Gor3Matrix extends GorMatrix {
     //s = 3 , x = 20
     protected final int[][] totalCountsSX = new int[3][20];
 
-    private final int[] totalCountsPerState3 = new int[3];
+    int[] totalCountsPerState3 = new int[3];
 
     //train
     // Eigene addCount Methode für GOR3
@@ -66,30 +64,132 @@ public class Gor3Matrix extends GorMatrix {
     }
 
     //train (and predict)
-    protected void calculateTotals3() {
-        java.util.Arrays.fill(totalCountsPerState3, 0);
+    public void calculateTotalsFromCounts3() {
+        //Wahrscheinlichkeit für Helix = totalCountsperState[0]/totalAA
+        //für jeden state wie oft AS, für P(S)
+        totalCountsPerState3 = new int[3];
+
         for (int s = 0; s < 3; s++) {
-            for (int x = 0; x < 20; x++) {
-                // Wir nutzen die Werte am Zentrum (Index 8),
-                // um die Gesamtzahl der Zustände S für Zentrum X zu erhalten
-                for (int y = 0; y < 20; y++) {
-                    totalCountsPerState3[s] += counts3[s][8][x][y];
+            //zentrum as
+            for (int z = 0; z < 20; z++) {
+                //nachbar as
+                for (int a = 0; a < 20; a++) {
+                    totalCountsPerState3[s] += counts3[s][8][z][a];
+                    //wie oft kam Zentrum-AS z in Zustand s vor, egal welcher Nachbar
+                    totalCountsSX[s][a] += counts3[s][8][z][a];
                 }
             }
         }
     }
 
     //predict
-    public void load3(String path) throws IOException {}
+    //Header: Zentrum AS und Zustand
+    //Zeile: Nachbar AS + 17 Werte -> für jede 20 zentrum AS eine GOR! MATRIX
+    public void loadModel3(String filePath) throws IOException {
+        BufferedReader reader = new BufferedReader(new FileReader(filePath));
+        String line;
+        //0 H, 1 E, 2 C
+        int stateIdx = -1;
+        //zentrum as 20
+        int zentrumAS = -1;
 
-    //predict
-    public void calculateScores3(){}
-
-    //predict
-    public char getBestState3(String window) {
-        return window.charAt(0);
+        //gegebene file lesen
+        while ((line = reader.readLine()) != null) {
+            line = line.trim();
+            if (line.isEmpty()) continue;
+            // wenn Zeile mit "=" beginnt, haben wir einen neuen Header mit AS und Zustand
+            if (line.startsWith("=")) {
+                char stateChar = line.charAt(3);
+                char centralAA = line.charAt(1);
+                stateIdx = getStateIndex(stateChar);
+                zentrumAS = getAaIndex(centralAA);
+            }
+            //zeile nachbar AS mit 17 Positionswete
+            else if (stateIdx != -1 && zentrumAS != -1) {
+                //leerzeichen etc weg
+                String[] values = line.split("\\s+");
+                //AS plus 17er Window
+                if (values.length == 18) {
+                    //AS als zahl speichern
+                    int aa = getAaIndex(values[0].charAt(0));
+                    if (aa == -1) continue;
+                    for (int pos = 0; pos < 17; pos++) {
+                        counts3[stateIdx][pos] [zentrumAS][aa] = Integer.parseInt(values[pos + 1]);
+                    }
+                }
+            }
+        }
+        calculateTotalsFromCounts3();
+        calculateScores3();
     }
 
 
+    //predict
+    //I = log( f(S, a_j, a_{j+k}) / f(¬S, a_j, a_{j+k}) ) + log( f(¬S, a_j) / f(S, a_j) )
+    public void calculateScores3() {
+        for (int s = 0; s < 3; s++) {
+            for (int p = 0; p < 17; p++) {
+                //Zentrum AS a_j
+                for (int c = 0; c < 20; c++) {
+                    // Nachbar-AS a_{j+k}
+                    for (int a = 0; a < 20; a++) {
+
+                        // log( f(S, a_j, a_{j+k}) / f(¬S, a_j, a_{j+k}) )
+                        //wie oft zentrum c nachbar a paar an posi p zusand s
+                        double fSA = counts3[s][p][c][a];
+                        //wie oft gleiches par anderer zustand
+                        double f_SA = 0;
+                        for (int o = 0; o < 3; o++) {
+                            if (o != s) {
+                                f_SA += counts3[o][p][c][a];
+                            }
+                        }
+
+                        // log( f(¬S, a_j) / f(S, a_j) )
+                        //zentrum as c alleine in zustand
+                        double fSX = totalCountsSX[s][c];
+                        //wie oft in anderem
+                        double f_SX = 0;
+                        for (int o = 0; o < 3; o++) {
+                            if (o != s) f_SX += totalCountsSX[o][c];  // f(¬S, a_j)
+                        }
+                        //nich bwi 1
+                        if (fSA == 0 || f_SA == 0 || fSX == 0 || f_SX == 0) {
+                            scores3[s][p][c][a] = 0.0;
+                            continue;
+                        }
+
+                        scores3[s][p][c][a] = Math.log(fSA / f_SA) + Math.log(f_SX / fSX);
+                    }
+                }
+            }
+        }
+    }
+
+
+    public char getBestState3(String window) {
+        // Zentrum-AS bestimmen posi 8 inn zahl
+        int centerAS = getAaIndex(window.charAt(8));
+        //unbekannt im zentrum
+        if (centerAS == -1) centerAS = 0;
+        //ein gesamtscore pro zustnd
+        double[] totals = new double[3];
+
+        for (int s = 0; s < 3; s++) {
+            for (int p = 0; p < 17; p++) {
+                //as aktuelle posi (=Nachbar)
+                char aa = window.charAt(p);
+                //nachbar in zahl
+                int aaIdx = getAaIndex(aa);
+                if (aaIdx == -1) continue;
+                //Score für diesen Zustand, diese Position, diese Zentrum-AS und diese Nachbar-AS
+                totals[s] += scores3[s][p][centerAS][aaIdx];
+            }
+        }
+
+        if (totals[0] >= totals[1] && totals[0] >= totals[2]) return 'H';
+        if (totals[1] >= totals[0] && totals[1] >= totals[2]) return 'E';
+        return 'C';
+    }
 
 }

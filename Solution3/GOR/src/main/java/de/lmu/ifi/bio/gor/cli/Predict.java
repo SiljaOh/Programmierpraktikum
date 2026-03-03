@@ -66,7 +66,7 @@ public class Predict {
 
         } else if (GOR.equals("GOR3")) {
             Gor3 gor3 = new Gor3();
-            gor3.getMatrix().loadModel(seqPath);
+            gor3.getMatrix3().loadModel3(modelPath);
             List<Protein> proteins = GorMethod.readFasta(seqPath);
             for (Protein protein : proteins) {
                 String result = gor3.predict(protein.getSequence());

@@ -67,6 +67,11 @@ public abstract class GorMethod {
         int windowSize = 17;
         int m = windowSize / 2;
 
+        //prediction fix oder so
+        if (!isTraining && sequence.length() < windowSize) {
+            return "C".repeat(sequence.length());
+        }
+
         for (int i = m; i < sequence.length() - m; i++) {
 
             // Fenster ausschneiden (17 Zeichen lang)
@@ -80,15 +85,10 @@ public abstract class GorMethod {
 
             handleWindow(window, i, target, isTraining, result);
         }
-        //prediction fix oder so
-        if (!isTraining && sequence.length() < windowSize) {
-            return "-".repeat(sequence.length());
-        }
 
         // predict: ignorierte Ränder mit Platzhaltern auffüllen
         if (!isTraining) {
-            String paddedResult = "-".repeat(m) + result.toString() + "-".repeat(m);
-            return paddedResult;
+            return "C".repeat(m) + result.toString() + "C".repeat(m);
         }
 
         return result.toString();
