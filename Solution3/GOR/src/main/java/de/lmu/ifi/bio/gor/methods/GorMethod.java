@@ -12,7 +12,7 @@ public abstract class GorMethod {
     //Vererbungsklasse für Gor1,3,4,5
     //alle Methoden die alle Gor benötigen
     //3 x 17 x 20 matrix
-    protected GorMatrix matrix = new GorMatrix();
+    protected GorMatrix matrix;
 
     public abstract void train(List<Protein> data);
 
@@ -24,10 +24,6 @@ public abstract class GorMethod {
         return this.matrix; // Stellt sicher, dass Predict auf die Matrix zugreifen kann
     }
 
-    protected String applyPadding(String sequence) {
-        String padding = "XXXXXXXX"; //17er Fenster; 8 links, Zentrum, 8 rechts
-        return padding + sequence + padding;
-    }
 
     public static List<Protein> readFasta(String filePath) throws IOException {
         List<Protein> proteins = new ArrayList<Protein>();

@@ -1,5 +1,6 @@
 package de.lmu.ifi.bio.gor.methods;
 
+import de.lmu.ifi.bio.gor.model.GorMatrix;
 import de.lmu.ifi.bio.gor.model.Protein;
 
 
@@ -8,6 +9,11 @@ import java.util.List;
 //KONSTANTEN
 
 public class Gor1 extends GorMethod{
+
+    public Gor1(){
+        this.matrix=new GorMatrix();
+    }
+
     @Override
     //calculate probabilities of observing state i = {H, E, C}
     // at the central window position when finding residue X at
@@ -19,7 +25,7 @@ public class Gor1 extends GorMethod{
         }
     }
 
-
+    @Override
     public String predict(String sequence) {
         Protein protein = new Protein("ID", sequence, " ".repeat(sequence.length()));
 
