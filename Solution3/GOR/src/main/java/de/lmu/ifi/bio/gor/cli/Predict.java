@@ -58,6 +58,8 @@ public class Predict {
             List<Protein> proteins = GorMethod.readFasta(seqPath);
 
             for (Protein protein : proteins) {
+                //um auf selbe Anzahl Protein zu kommen
+                if (protein.getSequence().length() < 17) continue;
                 String result = gor1.predict(protein.getSequence());
                 System.out.println(">" + protein.getId());
                 System.out.println("AS " + protein.getSequence());
@@ -69,6 +71,7 @@ public class Predict {
             gor3.getMatrix3().loadModel3(modelPath);
             List<Protein> proteins = GorMethod.readFasta(seqPath);
             for (Protein protein : proteins) {
+                if (protein.getSequence().length() < 17) continue;
                 String result = gor3.predict(protein.getSequence());
                 System.out.println(">" + protein.getId());
                 System.out.println("AS " + protein.getSequence());
