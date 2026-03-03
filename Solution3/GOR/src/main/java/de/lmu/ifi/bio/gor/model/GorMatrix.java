@@ -46,7 +46,19 @@ public class GorMatrix {
         }
     }
 
-    public void save(File file){} //matrix speichern???
+    public int getCount(char state, int windowPos, char aa) {
+        return matrix[getStateIndex(state)][windowPos][getAaIndex(aa)];
+    }
+
+    public int getTotalCountsPerState(char state) {
+        return totalCountsperState[getStateIndex(state)];
+    }
+
+    public int getTotalAA() {
+        return totalAA;
+    }
+
+
 
 
 }
