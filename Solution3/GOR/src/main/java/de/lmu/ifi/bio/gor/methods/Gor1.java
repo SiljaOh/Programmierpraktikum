@@ -2,6 +2,7 @@ package de.lmu.ifi.bio.gor.methods;
 
 import de.lmu.ifi.bio.gor.model.Protein;
 
+
 import java.util.List;
 
 public class Gor1 extends GorMethod{
@@ -11,19 +12,30 @@ public class Gor1 extends GorMethod{
     //position +-8 from central position in training set
     //aim: 3 matrices with 17*20 entries each
     public void train(List<Protein> data) {
-
+        for(Protein p : data){
+            this.slidingWindow(p,true);
+        }
     }
 
-    @Override
-    //calculate 3 probabilities for each residue to be predicted
-    //for being helix H, sheet E or coil C
-    //aim: predict state with max probability for each residue
+
     public String predict(String sequence) {
-        return "";
+        Protein protein = new Protein("ID", sequence, " ".repeat(sequence.length()));
+
+        return slidingWindow(protein, false);
     }
 
     @Override
-    public void handleWindow(String window, int position, char targetStructure) {
-
+    public void handleWindow(String window, int position, char target, boolean isTraining, StringBuilder result) {
+        if(isTraining) {
+            for (int w = 0; w < window.length(); w++) {
+                char aa = window.charAt(w);
+                this.matrix.addCount(target, w, aa);
+            }
+        }
+        else {
+            char bestState = this.matrix.getBestState(window);
+            result.append(bestState);
+        }
     }
+
 }

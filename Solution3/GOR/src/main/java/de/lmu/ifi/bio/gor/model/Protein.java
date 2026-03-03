@@ -6,6 +6,9 @@ public class Protein {
     private String structure; // Die SS Zeile
 
     public Protein(String id, String as, String ss) {
+        this.id = id;
+        this.sequence = as;
+        this.structure = ss;
     }
 
     public String getId() {
