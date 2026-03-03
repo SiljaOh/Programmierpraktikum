@@ -13,7 +13,7 @@ public class Train {
 
     public static void main(String[] args) throws IOException {
 
-        String trainPath = null; //path to seclib training file
+        String trainPath = null; // path to seclib training file
         String methodSelection = "1"; // <gor1|gor3|gor4>
         String modelOutputPath = null; //model file output
 
