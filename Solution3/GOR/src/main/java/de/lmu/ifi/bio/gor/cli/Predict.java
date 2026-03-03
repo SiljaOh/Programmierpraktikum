@@ -1,10 +1,14 @@
 package de.lmu.ifi.bio.gor.cli;
 
 import de.lmu.ifi.bio.gor.methods.Gor1;
+import de.lmu.ifi.bio.gor.methods.GorMethod;
+import de.lmu.ifi.bio.gor.model.Protein;
+
+import java.io.IOException;
 
 public class Predict {
 
-    public static void main(String[] args) {
+    public static void main(String[] args) throws IOException {
 
         //java -jar predict.jar --model <file> --seq <file> [--format <txt|html>] [--probabilities]
 
@@ -40,12 +44,19 @@ public class Predict {
             System.exit(1);
         }
 
+
+
         Gor1 gor1 = new Gor1();
-        gor1.
+        gor1.getMatrix().loadModel(modelPath);
+
+        Protein protein = GorMethod.readFasta(seqPath);
 
 
+        String result = gor1.predict(protein.getSequence());
 
-
+        System.out.println(">" + protein.getId());
+        System.out.println("AS " + protein.getSequence());
+        System.out.println("PS " + result);
     }
 }
 
