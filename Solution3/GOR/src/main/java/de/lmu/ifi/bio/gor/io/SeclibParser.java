@@ -16,7 +16,6 @@ public class SeclibParser {
     //          SS
 
     public List<Protein> parseSeclib(String filePath) throws IOException {
-
         List<Protein> proteinList = new ArrayList<>();
         File file = new File(filePath);
 
@@ -27,32 +26,35 @@ public class SeclibParser {
             String ss = null;
 
             while ((line = br.readLine()) != null) {
-                line = line.trim();
-                if (line.isEmpty()) continue;
 
-                if (line.startsWith(">")) {
+                String trimmedLine = line.trim();
+                if (trimmedLine.isEmpty()) continue;
+
+                if (trimmedLine.startsWith(">")) {
 
                     if (id != null && as != null && ss != null) {
                         proteinList.add(new Protein(id, as, ss));
                     }
-                    id = line.substring(1).trim(); //ID ohne >
-                    as = null; // Reset
+                    // Reset für das neue Protein
+                    id = trimmedLine.substring(1).trim();
+                    as = null;
                     ss = null;
+                } else if (trimmedLine.startsWith("AS ")) {
 
-                } else if (line.startsWith("AS ")) {
-                    as = line.substring(3).trim();
-                } else if (line.startsWith("SS ")) {
-                    ss = line.substring(3).trim();
-                }
+                    as = trimmedLine.substring(3).trim().replaceAll("[^A-Z]", "");
+                } else if (trimmedLine.startsWith("SS ")) {
 
-                //letztes protein
-                if (id != null && as != null && ss != null) {
-                    proteinList.add(new Protein(id, as, ss));
+                    ss = trimmedLine.substring(3).trim().replaceAll("[^A-Z]","");
                 }
             }
 
-            return proteinList;
+
+            if (id != null && as != null && ss != null) {
+                proteinList.add(new Protein(id, as, ss));
+            }
         }
+        return proteinList;
+
     }
 }
 
