@@ -24,11 +24,6 @@ public abstract class GorMethod {
     }
 
 
-    protected String applyPadding(String sequence) {
-        String padding = "XXXXXXXX"; //17er Fenster; 8 links, Zentrum, 8 rechts
-        return padding + sequence + padding;
-    }
-
     public static Protein readFasta(String filePath) throws IOException {
         String id = null;
         StringBuilder sequence = new StringBuilder();
@@ -68,27 +63,34 @@ public abstract class GorMethod {
 
     //sliding window anpassen
     public String slidingWindow(Protein protein, boolean isTraining) {
-
         String sequence = protein.getSequence();
         String structure = protein.getStructure();
-        String paddedSequence = applyPadding(protein.getSequence());
-
         StringBuilder result = new StringBuilder();
 
-        for(int i = 0; i < sequence.length(); i++) {
-            //windows ausschneiden
-            String window = paddedSequence.substring(i, i + 17); //Window size = 17
+        int windowSize = 17;
+        int m = windowSize / 2;
 
-            //struktur im zentrum
+        for (int i = m; i < sequence.length() - m; i++) {
+
+            // Fenster ausschneiden (17 Zeichen lang)
+            // substring(start, end) -> end ist exklusiv, daher + m + 1
+            String window = sequence.substring(i - m, i + m + 1);
+
             char target = ' ';
-
             if (isTraining) {
                 target = structure.charAt(i);
             }
 
-            //window individuell weiterverarbeiten
             handleWindow(window, i, target, isTraining, result);
         }
+
+        // predict: ignorierte Ränder mit Platzhaltern auffüllen
+        // damit die Länge des Resultats stimmt.
+        if (!isTraining) {
+            String paddedResult = "-".repeat(m) + result.toString() + "-".repeat(m);
+            return paddedResult;
+        }
+
         return result.toString();
     }
 }

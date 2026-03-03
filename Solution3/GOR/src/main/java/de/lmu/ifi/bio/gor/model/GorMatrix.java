@@ -5,12 +5,11 @@ import java.io.*;
 public class GorMatrix {
 
     //3 observing states H,E,C
-    //17 window: paddding + zentrum + padding = 8+1+8 = 17
+    //window : paddding + zentrum + padding = 8+1+8 = 17
     //20 amino acids
     //Idee für jede AS deren Struktur man predicten werden müssen 3 * 17 * 20 = 1020 Parameter geschätzt werden
     protected final int[][][] counts = new int[3][17][20];
     protected final double[][][] scores = new double[3][17][20];
-
 
     int[] totalCountsperState = new int[3];
     int totalAA = 0;
