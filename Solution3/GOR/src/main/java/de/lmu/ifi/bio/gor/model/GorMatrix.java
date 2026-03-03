@@ -138,11 +138,11 @@ public class GorMatrix {
             }
         }
         calculateTotalsFromCounts();
-        calculateScores();
+        calculateScores1();
     }
 
-    //predict
-    public void calculateScores() {
+    //predict VERSCHIEBENNN ODER ???
+    public void calculateScores1() {
 
         for (int s = 0; s < 3; s++) {
 
@@ -172,7 +172,9 @@ public class GorMatrix {
         }
     }
 
-    //pedict
+    
+
+    //predict
     public char getBestState(String window) {
         double[] totals = new double[3];
         for (int s = 0; s < 3; s++) {

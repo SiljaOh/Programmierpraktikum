@@ -24,7 +24,6 @@ public abstract class GorMethod {
         return this.matrix; // Stellt sicher, dass Predict auf die Matrix zugreifen kann
     }
 
-
     public static List<Protein> readFasta(String filePath) throws IOException {
         List<Protein> proteins = new ArrayList<Protein>();
         String id = null;
@@ -81,9 +80,12 @@ public abstract class GorMethod {
 
             handleWindow(window, i, target, isTraining, result);
         }
+        //prediction fix oder so
+        if (!isTraining && sequence.length() < windowSize) {
+            return "-".repeat(sequence.length());
+        }
 
         // predict: ignorierte Ränder mit Platzhaltern auffüllen
-        // damit die Länge des Resultats stimmt.
         if (!isTraining) {
             String paddedResult = "-".repeat(m) + result.toString() + "-".repeat(m);
             return paddedResult;
@@ -91,5 +93,34 @@ public abstract class GorMethod {
 
         return result.toString();
     }
+
+    public static String whichMethod(String modelPath) throws IOException {
+        // Header um Methode zu bestimmen
+        try (BufferedReader reader = new BufferedReader(new FileReader(modelPath))) {
+            String line;
+
+            while ((line = reader.readLine()) != null) {
+                line = line.trim();
+                if (line.isEmpty()) continue;
+                // Header finden mehr nicht
+                if (line.startsWith("//")) {
+                    //wie beim train gor rausfinden
+                    switch (line) {
+                        case "// Matrix4D":
+                            return "GOR3";
+                        case "// Matrix6D":
+                            return "GOR4";
+                        default:
+                            return "GOR1";
+                    }
+                }
+            }
+        }
+        // kein Header einfach gor1
+        return "GOR1";
+    }
+
+
+
 
 }
