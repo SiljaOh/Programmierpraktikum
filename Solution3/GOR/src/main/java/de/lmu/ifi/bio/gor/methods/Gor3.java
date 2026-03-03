@@ -6,10 +6,8 @@ import java.util.List;
 
 public class Gor3 extends GorMethod{
 
-
     @Override
     public void train(List<Protein> data) {
-
     }
 
     @Override
