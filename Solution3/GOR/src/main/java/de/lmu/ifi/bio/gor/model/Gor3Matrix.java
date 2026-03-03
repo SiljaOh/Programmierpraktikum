@@ -16,6 +16,7 @@ public class Gor3Matrix extends GorMatrix {
 
     //gor3 hat zusätzlcih; Wie oft tritt Zentrum X in Zustand S auf?
     //P(S,X)
+    //s = 3 , x = 20
     protected final int[][] totalCountsSX = new int[3][20];
 
     private final int[] totalCountsPerState3 = new int[3];

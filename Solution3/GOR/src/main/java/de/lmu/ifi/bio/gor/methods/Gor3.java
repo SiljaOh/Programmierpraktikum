@@ -13,6 +13,9 @@ public class Gor3 extends GorMethod{
 
     @Override
     public void train(List<Protein> data) {
+        for(Protein p : data){
+            slidingWindow(p,true);
+        }
     }
 
     @Override
@@ -22,6 +25,17 @@ public class Gor3 extends GorMethod{
 
     @Override
     public void handleWindow(String window, int position, char target, boolean isTraining, StringBuilder result) {
+        //matrix auf Gor3Matrix casten! (Gor3Matrix erbt von GorMatrix)
+        Gor3Matrix gor3Matrix = (Gor3Matrix) this.matrix;
 
+        char centralAA = window.charAt(8); //Anker X an pos j
+
+        //für das gesamte zentrum:
+        for (int m = 0; m < 17; m++) {
+            char neighborAA = window.charAt(m); //Nachbar Y an Position j+m
+
+            //Paar-Information (Zentrum, Nachbar, Position)
+            gor3Matrix.addCount3(target, m, centralAA, neighborAA);
+        }
     }
 }
