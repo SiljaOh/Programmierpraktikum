@@ -13,15 +13,21 @@ public abstract class GorMethod {
     //3 x 17 x 20 matrix
     protected GorMatrix matrix = new GorMatrix();
 
-    public GorMatrix getMatrix() {
-        return this.matrix;
-    }
-
     public abstract void train(List<Protein> data);
 
     public abstract String predict(String sequence);
 
     public abstract void handleWindow(String window, int position, char target, boolean isTraining, StringBuilder result);
+
+    public GorMatrix getMatrix() {
+        return this.matrix; // Stellt sicher, dass Predict auf die Matrix zugreifen kann
+    }
+
+
+    protected String applyPadding(String sequence) {
+        String padding = "XXXXXXXX"; //17er Fenster; 8 links, Zentrum, 8 rechts
+        return padding + sequence + padding;
+    }
 
     public static Protein readFasta(String filePath) throws IOException {
         String id = null;
@@ -42,7 +48,7 @@ public abstract class GorMethod {
                     id = line.substring(1).trim();
                 } else {
                     // Sequenz-Zeilen bereinigen (Leerzeichen entfernen, falls vorhanden)
-                    sequence.append(line.replaceAll("\s+", ""));
+                    sequence.append(line.replaceAll("\\s+", ""));
                 }
             }
         }
@@ -59,11 +65,6 @@ public abstract class GorMethod {
         return new Protein(id, sequence.toString(), " ".repeat(sequence.length()));
     }
 
-    protected String applyPadding(String sequence) {
-        String padding = "XXXXXXXX"; //17er Fenster; 8 links, Zentrum, 8 rechts
-        return padding + sequence + padding;
-    }
-
 
     //sliding window anpassen
     public String slidingWindow(Protein protein, boolean isTraining) {
@@ -74,7 +75,7 @@ public abstract class GorMethod {
 
         StringBuilder result = new StringBuilder();
 
-        for (int i = 0; i < sequence.length(); i++) {
+        for(int i = 0; i < sequence.length(); i++) {
             //windows ausschneiden
             String window = paddedSequence.substring(i, i + 17); //Window size = 17
 
