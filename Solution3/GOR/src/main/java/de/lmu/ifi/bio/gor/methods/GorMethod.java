@@ -88,7 +88,7 @@ public abstract class GorMethod {
 
         // predict: ignorierte Ränder mit Platzhaltern auffüllen
         if (!isTraining) {
-            return "C".repeat(m) + result.toString() + "C".repeat(m);
+            return "-".repeat(m) + result.toString() + "-".repeat(m);
         }
 
         return result.toString();
