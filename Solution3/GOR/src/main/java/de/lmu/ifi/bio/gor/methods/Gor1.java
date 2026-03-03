@@ -5,6 +5,8 @@ import de.lmu.ifi.bio.gor.model.Protein;
 
 import java.util.List;
 
+//KONSTANTEN
+
 public class Gor1 extends GorMethod{
     @Override
     //calculate probabilities of observing state i = {H, E, C}

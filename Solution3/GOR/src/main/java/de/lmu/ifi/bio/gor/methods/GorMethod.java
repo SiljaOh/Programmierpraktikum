@@ -5,6 +5,7 @@ import de.lmu.ifi.bio.gor.model.GorMatrix;
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 
 public abstract class GorMethod {
@@ -23,8 +24,13 @@ public abstract class GorMethod {
         return this.matrix; // Stellt sicher, dass Predict auf die Matrix zugreifen kann
     }
 
+    protected String applyPadding(String sequence) {
+        String padding = "XXXXXXXX"; //17er Fenster; 8 links, Zentrum, 8 rechts
+        return padding + sequence + padding;
+    }
 
-    public static Protein readFasta(String filePath) throws IOException {
+    public static List<Protein> readFasta(String filePath) throws IOException {
+        List<Protein> proteins = new ArrayList<Protein>();
         String id = null;
         StringBuilder sequence = new StringBuilder();
 
@@ -35,31 +41,27 @@ public abstract class GorMethod {
                 if (line.isEmpty()) continue;
 
                 if (line.startsWith(">")) {
-                    // Falls schon eine ID da ist, haben wir es mit einer Multi-Fasta Datei zu tun.
-                    // Hier brechen wir ab oder verarbeiten nur das erste Protein.
-                    if (id != null) break;
 
-                    // ID extrahieren (nimmt alles nach dem '>')
+                    if (id != null && sequence.length() > 0) {
+                        proteins.add(new Protein(id, sequence.toString(), " ".repeat(sequence.length())));
+                        sequence.setLength(0); // StringBuilder leeren für das nächste Protein
+                    }
+
                     id = line.substring(1).trim();
                 } else {
-                    // Sequenz-Zeilen bereinigen (Leerzeichen entfernen, falls vorhanden)
                     sequence.append(line.replaceAll("\\s+", ""));
                 }
             }
+            if (id != null && sequence.length() > 0) {
+                proteins.add(new Protein(id, sequence.toString(), " ".repeat(sequence.length())));
+            }
         }
 
-        // Validierung: Fail-Fast
-        if (id == null) {
+        if (proteins.isEmpty()) {
             throw new IOException("Datei '" + filePath + "' enthält keinen gültigen FASTA-Header (startet nicht mit '>').");
         }
-        if (sequence.length() == 0) {
-            throw new IOException("Datei '" + filePath + "' enthält keine Sequenzdaten für ID: " + id);
-        }
-
-        // Protein mit ID, Sequenz und (wichtig!) der Platzhalter-Struktur zurückgeben
-        return new Protein(id, sequence.toString(), " ".repeat(sequence.length()));
+        return proteins;
     }
-
 
     //sliding window anpassen
     public String slidingWindow(Protein protein, boolean isTraining) {
@@ -93,4 +95,5 @@ public abstract class GorMethod {
 
         return result.toString();
     }
+
 }
