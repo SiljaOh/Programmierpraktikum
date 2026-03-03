@@ -14,6 +14,10 @@ public class Gor3Matrix extends GorMatrix {
     protected final int[][][][] counts3 = new int[3][17][20][20];
     protected final double[][][][] scores3 = new double[3][17][20][20];
 
+    //gor3 hat zusätzlcih; Wie oft tritt Zentrum X in Zustand S auf?
+    //P(S,X)
+    protected final int[][] totalCountsSX = new int[3][20];
+
     private final int[] totalCountsPerState3 = new int[3];
 
     //train
@@ -26,8 +30,9 @@ public class Gor3Matrix extends GorMatrix {
         if (sIdx != -1 && xIdx != -1 && yIdx != -1) {
             counts3[sIdx][windowPos][xIdx][yIdx]++;
 
+            //nur einmal pro fenster zentrum zählen
             if (windowPos == 8) {
-                totalCountsPerState3[sIdx]++;
+                totalCountsSX[sIdx][xIdx]++;
             }
         }
     }
