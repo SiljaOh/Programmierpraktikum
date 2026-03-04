@@ -9,7 +9,7 @@ public class Gor4Matrix extends Gor3Matrix {
     protected final double[][][][][][] scores4 = new double[3][20][20][17][20][17];
     protected final double[][][][] scores4D = new double[3][17][20][20];
 
-    private static final double PSEUDO_COUNT = 0.1;
+    private static final double PSEUDO_COUNT = 0.8;
 
     //train
     public void addCount4(char state, char centralAA, char neighborOneAA, int neighborOnePos, char neighborTwoAA, int neighborTwoPos) {
