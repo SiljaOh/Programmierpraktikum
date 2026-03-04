@@ -3,6 +3,7 @@ package de.lmu.ifi.bio.gor.cli;
 import de.lmu.ifi.bio.gor.io.SeclibParser;
 import de.lmu.ifi.bio.gor.methods.Gor1;
 import de.lmu.ifi.bio.gor.methods.Gor3;
+import de.lmu.ifi.bio.gor.methods.Gor4;
 import de.lmu.ifi.bio.gor.methods.GorMethod;
 import de.lmu.ifi.bio.gor.model.Protein;
 
