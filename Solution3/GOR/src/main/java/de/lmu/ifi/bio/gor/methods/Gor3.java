@@ -50,4 +50,11 @@ public class Gor3 extends GorMethod{
             gor3Matrix.addCount3(target, m, centralAA, neighborAA);
         }
     }
+
+    //GorV:
+    @Override
+    protected double[] calculateRawScores(String window) {
+        return this.matrix.getBestStateGorV(window);
+    }
+
 }
