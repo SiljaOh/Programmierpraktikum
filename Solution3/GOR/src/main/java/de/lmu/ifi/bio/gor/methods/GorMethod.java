@@ -1,4 +1,5 @@
 package de.lmu.ifi.bio.gor.methods;
+import de.lmu.ifi.bio.gor.model.Alignment;
 import de.lmu.ifi.bio.gor.model.Protein;
 import de.lmu.ifi.bio.gor.model.GorMatrix;
 
@@ -119,7 +120,64 @@ public abstract class GorMethod {
         return "GOR1";
     }
 
+    public abstract double[][] getScores(String sequence);
 
+    public String predictGor5(Alignment alignment) {
+        String querySeq = alignment.getQuerySeq();
+        //länge mit gaps
+        int queryLen = querySeq.length();
+        //Summen arrays für H E C Scores pro Position
+        double[] sumH = new double[queryLen];
+        double[] sumE = new double[queryLen];
+        double[] sumC = new double[queryLen];
 
+        //Sequenz plus alle homologen
+        List<String> allSeqs = new ArrayList<>();
+        allSeqs.add(querySeq);
+        allSeqs.addAll(alignment.getHomologs());
+
+        //zu kleine sequenzen filtern
+        for (String seq : allSeqs) {
+            String seqWithoutGaps = seq.replace("-", "");
+            if (seqWithoutGaps.length() < 17) continue;
+            //[position][0/1/2]  hier score
+            //für jede Position der gap-freien Sequenz drei Scores.
+            double[][] readySeq = getScores(seqWithoutGaps);
+
+            //wie posi ohne gaps
+            //seq:       H  P  -  T  F  -  N  K
+            //seqPos:    0  1     2  3     4  5
+            int seqPos = 0;
+            for (int i = 0; i < queryLen; i++) {
+                //gaps in allen normalen seq skippen
+                if (seq.charAt(i) == '-') continue;
+                //haupt seq zählen
+                if (querySeq.charAt(i) == '-') {
+                    seqPos++;
+                    continue; }
+
+                //Score dieser Sequenz an dieser Position zur Summe addieren
+                sumH[i] += readySeq[seqPos][0];
+                sumE[i] += readySeq[seqPos][1];
+                sumC[i] += readySeq[seqPos][2];
+                seqPos++;
+            }
+        }
+
+        StringBuilder result = new StringBuilder();
+        for (int i = 0; i < queryLen; i++) {
+            //gaps in query überspringen
+            if (querySeq.charAt(i) == '-') continue;
+            //für jede posi in sequenz höchster score
+            if (sumH[i] >= sumE[i] && sumH[i] >= sumC[i]) {
+                result.append('H');
+            }
+            else if (sumE[i] >= sumH[i] && sumE[i] >= sumC[i]) {
+                result.append('E');
+            }
+            else result.append('C');
+        }
+        return result.toString();
+    }
 
 }
