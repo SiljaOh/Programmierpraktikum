@@ -39,14 +39,22 @@ public class Gor4 extends GorMethod {
 
         Gor4Matrix gor4Matrix = (Gor4Matrix) this.matrix;
 
-        char centralAA = window.charAt(8); //Anker X an pos j
+        char centralAA = window.charAt(8);
 
-        //für das gesamte zentrum:
+        //Ohne l > k zählt man jedes Paar doppelt
+        for(int k=0; k < 17; k++){
+            //wid hier mit k+1 sichergestellt
+            for (int l = k+1; l < 17; l++){
+                char neighbourOneAA = window.charAt(k);
+                char neighbourTwoAA = window.charAt(l);
+                gor4Matrix.addCount4(target, centralAA, neighbourOneAA, k, neighbourTwoAA, l );
+            }
+        }
+
+        //GOR3 noch befüllen für 2. teil
         for (int m = 0; m < 17; m++) {
-            char neighborAA = window.charAt(m); //Nachbar Y an Position j+m
-
-            //Paar-Information (Zentrum, Nachbar, Position)
-            gor4Matrix.addCount4(target, m, centralAA, neighborAA);
+            char neighbourAA = window.charAt(m);
+            gor4Matrix.addCount3(target, m, centralAA, neighbourAA);
         }
     }
 }

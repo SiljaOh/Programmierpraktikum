@@ -58,7 +58,6 @@ public abstract class GorMethod {
         return proteins;
     }
 
-    //sliding window anpassen
     public String slidingWindow(Protein protein, boolean isTraining) {
         String sequence = protein.getSequence();
         String structure = protein.getStructure();

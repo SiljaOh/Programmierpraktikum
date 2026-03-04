@@ -14,9 +14,8 @@ public class Gor3Matrix extends GorMatrix {
 
     //gor3 hat zusätzlcih; Wie oft tritt Zentrum X in Zustand S auf?
     //P(S,X)
-    //s = 3 , x = 20
-    protected final int[][] totalCountsSX = new int[3][20];
-
+    //s = 3 , a = 20
+    int[][] totalCountsSX = new int[3][20];
     int[] totalCountsPerState3 = new int[3];
 
     //train
@@ -76,8 +75,7 @@ public class Gor3Matrix extends GorMatrix {
                 for (int a = 0; a < 20; a++) {
                     totalCountsPerState3[s] += counts3[s][8][z][a];
                     //wie oft kam Zentrum-AS z in Zustand s vor, egal welcher Nachbar
-                    //totalCountsSX[s][z] += counts3[s][8][z][a]; ???
-                    totalCountsSX[s][a] += counts3[s][8][z][a];
+                    totalCountsSX[s][z] += counts3[s][8][z][a];
                 }
             }
         }
