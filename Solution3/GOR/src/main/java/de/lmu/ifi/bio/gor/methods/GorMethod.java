@@ -120,6 +120,7 @@ public abstract class GorMethod {
         return "GOR1";
     }
 
+    //GOR V
     public String predictGor5(Alignment alignment) {
         String querySeq = alignment.getReferenceSeq();
         //länge mit gaps
@@ -177,5 +178,35 @@ public abstract class GorMethod {
         }
         return result.toString();
     }
+
+    public double[][] getScores(String sequence) {
+        int len = sequence.length();
+        double[][] scores = new double[len][3];
+        int m = 8;
+
+        for (int i = 0; i < len; i++) {
+
+            String window = getPaddedWindow(sequence, i);
+
+            double[] p = calculateRawScores(window);
+            scores[i][0] = p[0]; // Score für H
+            scores[i][1] = p[1]; // Score für E
+            scores[i][2] = p[2]; // Score für C
+        }
+        return scores;
+    }
+
+    protected abstract double[] calculateRawScores(String window);
+
+    private String getPaddedWindow(String seq, int center) {
+        int m = 8;
+        StringBuilder sb = new StringBuilder();
+        for (int j = center - m; j <= center + m; j++) {
+            if (j < 0 || j >= seq.length()) sb.append("-");
+            else sb.append(seq.charAt(j));
+        }
+        return sb.toString();
+    }
+
 
 }

@@ -189,4 +189,27 @@ public class Gor3Matrix extends GorMatrix {
         return 'C';
     }
 
+    @Override
+    public double[] getBestStateGorV(String window) {
+        // Zentrum-AS bestimmen posi 8 inn zahl
+        int centerAS = getAaIndex(window.charAt(8));
+        //unbekannt im zentrum
+        if (centerAS == -1) centerAS = 0;
+        //ein gesamtscore pro zustnd
+        double[] totals = new double[3];
+
+        for (int s = 0; s < 3; s++) {
+            for (int p = 0; p < 17; p++) {
+                //as aktuelle posi (=Nachbar)
+                char aa = window.charAt(p);
+                //nachbar in zahl
+                int aaIdx = getAaIndex(aa);
+                if (aaIdx == -1) continue;
+                //Score für diesen Zustand, diese Position, diese Zentrum-AS und diese Nachbar-AS
+                totals[s] += scores3[s][p][centerAS][aaIdx];
+            }
+        }
+        return totals;
+    }
+
 }

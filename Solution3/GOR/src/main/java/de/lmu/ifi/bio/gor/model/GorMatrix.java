@@ -197,4 +197,19 @@ public class GorMatrix {
         return 'C';
     }
 
+    //für GorV:
+    //Override in allen GorMatrixen
+    public double[] getBestStateGorV(String window) {
+        double[] totals = new double[3];
+        for (int s = 0; s < 3; s++) {
+            for (int p = 0; p < 17; p++) {
+                char aa = window.charAt(p);
+                int aaIdx = getAaIndex(aa);
+                if (aaIdx == -1) continue;
+                totals[s] += scores[s][p][aaIdx];
+            }
+        }
+        return totals;//gib array [ScoreH,ScoreE,ScoreC] für gorV
+    }
+
 }

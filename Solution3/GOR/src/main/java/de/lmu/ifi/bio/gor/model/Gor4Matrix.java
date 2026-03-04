@@ -284,4 +284,45 @@ public class Gor4Matrix extends Gor3Matrix {
         return 'C';
     }
 
+    //für GorV
+    @Override
+    public double[] getBestState5(String window) {
+        int m = 8;
+        int N = 17;
+        double[] totals = new double[3];
+
+        int[] windowIndices = new int[N];
+        for (int i = 0; i < N; i++) {
+            windowIndices[i] = getAaIndex(window.charAt(i));
+        }
+
+        int centerIdx = windowIndices[m];
+        if (centerIdx == -1) centerIdx = 0;
+
+        for (int s = 0; s < 3; s++) {
+            double sum6D = 0;
+            double sum4D = 0;
+
+            for (int k = 0; k < N; k++) {
+                int aaK = windowIndices[k];
+                if (aaK == -1) continue;
+
+                // Minus-Term
+                sum4D += scores4D[s][k][centerIdx][aaK];
+
+                // Plus-Term: alle Paare l > k
+                for (int l = k + 1; l < N; l++) {
+                    int aaL = windowIndices[l];
+                    if (aaL == -1) continue;
+                    sum6D += scores4[s][centerIdx][aaK][k][aaL][l];
+                }
+            }
+
+            // Formel: (2/17) * sum6D - (15/17) * sum4D
+            totals[s] = (2.0 / N) * sum6D - ((2.0 * m - 1.0) / N) * sum4D;
+        }
+        return totals;
+    }
+
+
 }
