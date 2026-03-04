@@ -61,7 +61,7 @@ public class Predict {
                 //um auf selbe Anzahl Protein zu kommen
                 if (protein.getSequence().length() < 17) continue;
                 String result = gor1.predict(protein.getSequence());
-                System.out.println(">" + protein.getId());
+                System.out.println("> " + protein.getId());
                 System.out.println("AS " + protein.getSequence());
                 System.out.println("PS " + result + "\n");
             }
@@ -73,7 +73,7 @@ public class Predict {
             for (Protein protein : proteins) {
                 if (protein.getSequence().length() < 17) continue;
                 String result = gor3.predict(protein.getSequence());
-                System.out.println(">" + protein.getId());
+                System.out.println("> " + protein.getId());
                 System.out.println("AS " + protein.getSequence());
                 System.out.println("PS " + result + "\n");
             }
