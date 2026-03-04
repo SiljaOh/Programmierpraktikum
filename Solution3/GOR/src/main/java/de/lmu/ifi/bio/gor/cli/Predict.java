@@ -1,6 +1,7 @@
 package de.lmu.ifi.bio.gor.cli;
 
 import de.lmu.ifi.bio.gor.methods.Gor1;
+import de.lmu.ifi.bio.gor.methods.Gor3;
 import de.lmu.ifi.bio.gor.methods.GorMethod;
 import de.lmu.ifi.bio.gor.model.Protein;
 
@@ -47,17 +48,38 @@ public class Predict {
 
 
 
-        Gor1 gor1 = new Gor1();
-        gor1.getMatrix().loadModel(modelPath);
+        String GOR = GorMethod.whichMethod(modelPath);
 
-        List<Protein> proteins = GorMethod.readFasta(seqPath);
+        if (GOR.equals("GOR1")) {
 
-        for (Protein protein : proteins) {
-            String result = gor1.predict(protein.getSequence());
-            System.out.println(">" + protein.getId());
-            System.out.println("AS " + protein.getSequence());
-            System.out.println("PS " + result);
+            Gor1 gor1 = new Gor1();
+            gor1.getMatrix().loadModel(modelPath);
+
+            List<Protein> proteins = GorMethod.readFasta(seqPath);
+
+            for (Protein protein : proteins) {
+                //um auf selbe Anzahl Protein zu kommen
+                if (protein.getSequence().length() < 17) continue;
+                String result = gor1.predict(protein.getSequence());
+                System.out.println(">" + protein.getId());
+                System.out.println("AS " + protein.getSequence());
+                System.out.println("PS " + result + "\n");
+            }
+
+        } else if (GOR.equals("GOR3")) {
+            Gor3 gor3 = new Gor3();
+            gor3.getMatrix3().loadModel3(modelPath);
+            List<Protein> proteins = GorMethod.readFasta(seqPath);
+            for (Protein protein : proteins) {
+                if (protein.getSequence().length() < 17) continue;
+                String result = gor3.predict(protein.getSequence());
+                System.out.println(">" + protein.getId());
+                System.out.println("AS " + protein.getSequence());
+                System.out.println("PS " + result + "\n");
+            }
+
         }
+
     }
 }
 

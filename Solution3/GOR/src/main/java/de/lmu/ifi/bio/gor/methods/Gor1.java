@@ -28,7 +28,6 @@ public class Gor1 extends GorMethod{
     @Override
     public String predict(String sequence) {
         Protein protein = new Protein("ID", sequence, " ".repeat(sequence.length()));
-
         return slidingWindow(protein, false);
     }
 

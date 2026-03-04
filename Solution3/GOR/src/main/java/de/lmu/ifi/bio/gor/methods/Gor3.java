@@ -11,6 +11,10 @@ public class Gor3 extends GorMethod{
         this.matrix=new Gor3Matrix();
     }
 
+    public Gor3Matrix getMatrix3() {
+        return (Gor3Matrix) this.matrix;
+    }
+
     @Override
     public void train(List<Protein> data) {
         for(Protein p : data){
@@ -20,11 +24,19 @@ public class Gor3 extends GorMethod{
 
     @Override
     public String predict(String sequence) {
-        return "";
+        Protein protein = new Protein("ID", sequence, " ".repeat(sequence.length()));
+        return slidingWindow(protein, false);
     }
 
     @Override
     public void handleWindow(String window, int position, char target, boolean isTraining, StringBuilder result) {
+
+        if (!isTraining){
+            char bestState = getMatrix3().getBestState3(window);
+            result.append(bestState);
+            return;
+        }
+
         //matrix auf Gor3Matrix casten! (Gor3Matrix erbt von GorMatrix)
         Gor3Matrix gor3Matrix = (Gor3Matrix) this.matrix;
 
@@ -37,5 +49,6 @@ public class Gor3 extends GorMethod{
             //Paar-Information (Zentrum, Nachbar, Position)
             gor3Matrix.addCount3(target, m, centralAA, neighborAA);
         }
+
     }
 }
