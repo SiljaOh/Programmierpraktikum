@@ -61,77 +61,53 @@ public class Predict {
             System.exit(1);
         }
 
-        String GOR = GorMethod.whichMethod(modelPath);
+        // ... nach der Argumente-Verarbeitung ...
 
-        if (GOR.equals("GOR1")) {
-            Gor1 gor1 = new Gor1();
-            gor1.getMatrix().loadModel(modelPath);
-            List<Protein> proteins = GorMethod.readFasta(seqPath);
-            for (Protein protein : proteins) {
-                //um auf selbe Anzahl Protein zu kommen
-                if (protein.getSequence().length() < 17) continue;
-                String result = gor1.predict(protein.getSequence());
-                System.out.println("> " + protein.getId());
-                System.out.println("AS " + protein.getSequence());
-                System.out.println("PS " + result + "\n");
-            }
+        String methodType = GorMethod.whichMethod(modelPath);
+        GorMethod gor;
 
-        } else if (GOR.equals("GOR3")) {
-            Gor3 gor3 = new Gor3();
-            gor3.getMatrix3().loadModel3(modelPath);
-            List<Protein> proteins = GorMethod.readFasta(seqPath);
-            for (Protein protein : proteins) {
-                if (protein.getSequence().length() < 17) continue;
-                String result = gor3.predict(protein.getSequence());
-                System.out.println("> " + protein.getId());
-                System.out.println("AS " + protein.getSequence());
-                System.out.println("PS " + result + "\n");
-            }
-
-        } else if (GOR.equals("GOR4")) {
-            Gor4 gor4 = new Gor4();
-            gor4.getMatrix4().loadModel4(modelPath);
-            List<Protein> proteins = GorMethod.readFasta(seqPath);
-            for (Protein protein : proteins) {
-                String result = gor4.predict(protein.getSequence());
-                if (protein.getSequence().length() < 17) continue;
-                System.out.println("> " + protein.getId());
-                System.out.println("AS " + protein.getSequence());
-                System.out.println("PS " + result + "\n");
-            }
+        if (methodType.equals("GOR1")) {
+            gor = new Gor1();
+            gor.getMatrix().loadModel(modelPath);
+        } else if (methodType.equals("GOR3")) {
+            gor = new Gor3();
+            ((Gor3) gor).getMatrix3().loadModel3(modelPath);
+        } else {
+            gor = new Gor4();
+            ((Gor4) gor).getMatrix4().loadModel4(modelPath);
         }
 
-        if (alnPath != null) {
-
+        //entweder --seq oder --maf
+        if (seqPath != null) {
+            // Standard GOR Vorhersage
+            List<Protein> proteins = GorMethod.readFasta(seqPath);
+            for (Protein p : proteins) {
+                if (p.getSequence().length() < 17) continue;
+                String result = gor.predict(p.getSequence());
+                printResult(p.getId(), p.getSequence(), result);
+            }
+        } else if (alnPath != null) {
+            // GOR V
             File mafDir = new File(alnPath);
-            //Alles files holen
             File[] alnFiles = mafDir.listFiles((dir, name) -> name.endsWith(".aln"));
 
-
-            if (GOR.equals("GOR1")) {
-                Gor1 gor5gor1 = new Gor1();
-                gor5gor1.getMatrix().loadModel(modelPath);
+            if (alnFiles != null) {
                 for (File alnFile : alnFiles) {
                     Alignment alignment = AlnParser.parseAlignment(alnFile.getPath());
                     if (alignment == null) continue;
-                    String result = gor5gor1.predictGor5(alignment);
-                    System.out.println(">" + alignment.getId());
-                    System.out.println("AS " + alignment.getReferenceSeq());
-                    System.out.println("PS " + result + "\n");
+
+                    String result = gor.predictGor5(alignment);
+                    printResult(alignment.getId(), alignment.getReferenceSeq(), result);
                 }
             }
-            else if (GOR.equals("GOR3")) {
-
-
-                Gor3 gor5gor3 = new Gor3();
-            }
-            else if (GOR.equals("GOR4")) {
-
-
-                Gor4 gor5gor4 = new Gor4();
-            }
         }
+    }
 
+    //output funktion
+    private static void printResult(String id, String as, String ps) {
+        System.out.println("> " + id);
+        System.out.println("AS " + as);
+        System.out.println("PS " + ps + "\n");
     }
 
 }
