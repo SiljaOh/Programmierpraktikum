@@ -45,11 +45,9 @@ public class Train {
         GorMethod gor = null;
         switch (methodSelection.toLowerCase()) {
             case "gor3":
-            case "3":
                 gor = new Gor3();
                 break;
             case "gor4":
-            case "4":
                 //gor = new Gor4();
                 break;
             default:
