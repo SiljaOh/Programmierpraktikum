@@ -49,6 +49,5 @@ public class Gor3 extends GorMethod{
             //Paar-Information (Zentrum, Nachbar, Position)
             gor3Matrix.addCount3(target, m, centralAA, neighborAA);
         }
-
     }
 }
