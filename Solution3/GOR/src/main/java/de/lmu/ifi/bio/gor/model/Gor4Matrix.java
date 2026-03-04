@@ -286,7 +286,7 @@ public class Gor4Matrix extends Gor3Matrix {
 
     //für GorV
     @Override
-    public double[] getBestState5(String window) {
+    public double[] getBestStateGorV(String window) {
         int m = 8;
         int N = 17;
         double[] totals = new double[3];
