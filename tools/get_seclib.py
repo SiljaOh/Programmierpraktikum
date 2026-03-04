@@ -4,14 +4,11 @@ import os
 import urllib.request
 
 parser = argparse.ArgumentParser()
-#entweder oder
 parser.add_argument('--DSSP', type=argparse.FileType('r'), nargs='+')
 parser.add_argument('--PDB', type=argparse.FileType('r'), nargs='+')
 parser.add_argument('--id', nargs='+')
 parser.add_argument('--output', default='output.seclib', type=argparse.FileType('w'))
 args = parser.parse_args()
-
-#code duplis vermeidne
 
 if not args.DSSP and not args.PDB and not args.id:
     parser.error("Mindestens entweder --DSSP oder --PDB angeben!")
@@ -29,7 +26,14 @@ def find_local_file(id, extensions):
                     return os.path.join(root, fname)
     return None
 
-result = ""
+
+def write_entry(pdb_id, chain_id, full_aa, full_ss):
+    key = (pdb_id.upper(), chain_id)
+    if key in seen_entries:
+        return
+    seen_entries.add(key)
+    args.output.write(f"> {pdb_id}{chain_id}00\nAS {full_aa}\nSS {full_ss}\n\n")
+
 seen_entries = set()
 downloaded_files = []
 
@@ -58,36 +62,25 @@ if args.id:
         urllib.request.urlretrieve(url, filename)
         downloaded_files.append(open(filename, 'r'))
 
-    if args.PDB:
-        args.PDB = args.PDB + downloaded_files
-    else:
-        if downloaded_files:
-            args.PDB = downloaded_files
-        else: args.PDB = None
-
+    if downloaded_files:
+            args.PDB = (args.PDB or []) + downloaded_files
 
 
 if args.DSSP:
-    dssp_files = args.DSSP
     for dssp in dssp_files:
-
         # chain_id -> {'aa': [], 'ss': []}
         chains = {}
         start = False
 
         for line in dssp:
             line = line.strip()
-
             if line.startswith("HEADER"):
-                parts = line.split()
                 #lteztes Element ist ID
-                pdb_id = parts[-1]
-
+                pdb_id = line.split()[-1]
             if line.startswith('  #  RESIDUE AA'):
                 start = True
                 #passt, danach starten
                 continue
-
             if start:
                 #aa sequenz nacheinander in zeilen, ss auch
                 aa = line[13]
@@ -109,16 +102,8 @@ if args.DSSP:
                 chains[chain_id]['ss'].append(ss)
 
         for chain_id, seqs in chains.items():
+            write_entry(pdb_id, chain_id, ''.join(seqs['aa']), ''.join(seqs['ss']))
 
-            entry_key = (pdb_id.upper(), chain_id)
-            #duplikate vermeiden
-            if entry_key in seen_entries:
-                continue
-            seen_entries.add(entry_key)
-
-            full_aa = ''.join(seqs['aa'])
-            full_ss = ''.join(seqs['ss'])
-            result += f"> {pdb_id}{chain_id}00\nAS {full_aa}\nSS {full_ss}\n\n"
 
 aa_map = {'ALA': 'A', 'ARG': 'R', 'ASN': 'N', 'ASP': 'D', 'CYS': 'C',
           'GLU': 'E', 'GLN': 'Q', 'GLY': 'G', 'HIS': 'H', 'ILE': 'I',
@@ -126,9 +111,7 @@ aa_map = {'ALA': 'A', 'ARG': 'R', 'ASN': 'N', 'ASP': 'D', 'CYS': 'C',
           'SER': 'S', 'THR': 'T', 'TRP': 'W', 'TYR': 'Y', 'VAL': 'V'}
 
 if args.PDB:
-    pdb_files = args.PDB
     for pdb in pdb_files:
-
         # chain_id -> {'aa': [], 'ss': [], 'residue_ids': []
         chains = {}
         helix_or_sheet = []
@@ -136,9 +119,8 @@ if args.PDB:
         for line in pdb:
             line = line.strip()
             if line.startswith("HEADER"):
-                parts = line.split()
                 # lteztes Element ist ID
-                pdb_id = parts[-1]
+                pdb_id = line.split()[-1]
 
             if line.startswith("ATOM"):
                 res_name = line[17:20].strip()  # zb GLU
@@ -167,12 +149,6 @@ if args.PDB:
 
         #weil rest ist C
         for chain_id, seqs in chains.items():
-            #dupllikate vermieden
-            entry_key = (pdb_id.upper(), chain_id)
-            if entry_key in seen_entries:
-                continue
-            seen_entries.add(entry_key)
-
             ss_seq = ['C'] * len(seqs['aa'])
             for typ, chain, start, end in helix_or_sheet:
                 if chain != chain_id:
@@ -183,13 +159,8 @@ if args.PDB:
                 for i in range(start_idx, end_idx + 1):
                     ss_seq[i] = typ
 
-            full_aa = ''.join(seqs['aa'])
-            full_ss = ''.join(ss_seq)
-            result += f"> {pdb_id}{chain_id}00\nAS {full_aa}\nSS {full_ss}\n\n"
+            write_entry(pdb_id, chain_id, ''.join(seqs['aa']), ''.join(ss_seq))
 
-
-args.output.write(result)
-#runtergeladene pdb löschen
 for f in downloaded_files:
     f.close()
     os.remove(f.name)

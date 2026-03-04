@@ -1,7 +1,6 @@
 package de.lmu.ifi.bio.gor.io;
 
 import de.lmu.ifi.bio.gor.model.Alignment;
-
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
@@ -24,8 +23,8 @@ public class AlnParser {
 
                 if (line.startsWith(">")) {
                     String id = line.substring(1).trim();
-                    String asSeq = "";
-                    String ssSeq = "";
+                    String asSeq = null;
+                    String ssSeq = null;
 
 
                     String nextLine;

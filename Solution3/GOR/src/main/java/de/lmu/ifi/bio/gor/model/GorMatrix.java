@@ -14,15 +14,11 @@ public class GorMatrix {
     int[] totalCountsperState = new int[3];
     int totalAA = 0;
 
+    private static final String AMINO_ACIDS = "ACDEFGHIKLMNPQRSTVWY";
 
-    //train
-    // Hilfsmethode um 20 Zahlen in Matrix die Aminosäuren zuzuordnen
-    //zb. A ist Index 0 in Matrix
     public int getAaIndex(char aa) {
-        String aminoAcids = "ACDEFGHIKLMNPQRSTVWY";
-        return aminoAcids.indexOf(aa);
+        return AMINO_ACIDS.indexOf(aa);
     }
-
     //train
     // Hilfsmethode um 3 Zahlen in Matrix den 3 Zuständen zuzuordnen
     //zb. H ist Index 0 in Matrix
@@ -51,7 +47,6 @@ public class GorMatrix {
             totalAA++;
         }
     }
-
     //train
     public void save(String path) throws IOException {
         PrintWriter pw = new PrintWriter(new FileWriter(path));
@@ -82,7 +77,6 @@ public class GorMatrix {
         }
         pw.close();
     }
-
     //train und predict
     public void calculateTotalsFromCounts() {
         //Wahrscheinlichkeit für Helix = totalCountsperState[0]/totalAA
@@ -104,7 +98,6 @@ public class GorMatrix {
             }
         }
     }
-
     //predict
     // hier zeilen AS und spalten window
     public void loadModel(String filePath) throws IOException {
@@ -143,7 +136,6 @@ public class GorMatrix {
         calculateScores();
     }
 
-
     public void calculateScores() {
 
         for (int s = 0; s < 3; s++) {
@@ -173,32 +165,15 @@ public class GorMatrix {
             }
         }
     }
-
-    //predict
+    //predict, fast identisch
     public char getBestState(String window) {
-        double[] totals = new double[3];
-        for (int s = 0; s < 3; s++) {
-            for (int p = 0; p < 17; p++) {
-                char aa = window.charAt(p);
-                int aaIdx = getAaIndex(aa);
-                //x oder unbekannt
-                if (aaIdx == -1) continue;
-                totals[s] += scores[s][p][aaIdx];
-            }
-        }
-
-        // welcher Zustand hat den höchsten Score
-        if (totals[0] >= totals[1] && totals[0] >= totals[2]) {
-            return 'H';
-        }
-        if (totals[1] >= totals[0] && totals[1] >= totals[2]) {
-            return 'E';
-        }
+        double[] totals = getBestStateGorV(window);
+        if (totals[0] >= totals[1] && totals[0] >= totals[2]) return 'H';
+        if (totals[1] >= totals[0] && totals[1] >= totals[2]) return 'E';
         return 'C';
     }
+    //für Gor5:
 
-    //für GorV:
-    //Override in allen GorMatrixen
     public double[] getBestStateGorV(String window) {
         double[] totals = new double[3];
         for (int s = 0; s < 3; s++) {
@@ -209,7 +184,8 @@ public class GorMatrix {
                 totals[s] += scores[s][p][aaIdx];
             }
         }
-        return totals;//gib array [ScoreH,ScoreE,ScoreC] für gorV
+        //gib array [ScoreH,ScoreE,ScoreC]
+        return totals;
     }
 
 }

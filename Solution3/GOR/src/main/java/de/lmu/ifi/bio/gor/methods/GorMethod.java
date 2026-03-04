@@ -10,19 +10,10 @@ import java.util.ArrayList;
 import java.util.List;
 
 public abstract class GorMethod {
-    //Vererbungsklasse für Gor1,3,4,5
-    //alle Methoden die alle Gor benötigen
-    //3 x 17 x 20 matrix
+
     protected GorMatrix matrix;
-
-    public abstract void train(List<Protein> data);
-
-    public abstract String predict(String sequence);
-
-    public abstract void handleWindow(String window, int position, char target, boolean isTraining, StringBuilder result);
-
     public GorMatrix getMatrix() {
-        return this.matrix; // Stellt sicher, dass Predict auf die Matrix zugreifen kann
+        return this.matrix;
     }
 
     public static List<Protein> readFasta(String filePath) throws IOException {
@@ -58,8 +49,46 @@ public abstract class GorMethod {
         }
         return proteins;
     }
+    public static String whichMethod(String modelPath) throws IOException {
+        // Header um Methode zu bestimmen
+        try (BufferedReader reader = new BufferedReader(new FileReader(modelPath))) {
+            String line;
 
-    public String slidingWindow(Protein protein, boolean isTraining) {
+            while ((line = reader.readLine()) != null) {
+                line = line.trim();
+                if (line.isEmpty()) continue;
+                // Header finden mehr nicht
+                if (line.startsWith("//")) {
+                    //wie beim train gor rausfinden
+                    switch (line) {
+                        case "// Matrix4D":
+                            return "GOR3";
+                        case "// Matrix6D":
+                            return "GOR4";
+                        default:
+                            return "GOR1";
+                    }
+                }
+            }
+        }
+        // kein Header einfach gor1
+        return "GOR1";
+    }
+
+    public abstract void train(List<Protein> data);
+    public abstract String predict(String sequence);
+
+    private String getPaddedWindow(String seq, int center) {
+        int m = 8;
+        StringBuilder sb = new StringBuilder();
+        for (int j = center - m; j <= center + m; j++) {
+            if (j < 0 || j >= seq.length()) sb.append("-");
+            else sb.append(seq.charAt(j));
+        }
+        return sb.toString();
+    }
+    public abstract void handleWindow(String window, int position, char target, boolean isTraining, StringBuilder result);
+    protected String slidingWindow(Protein protein, boolean isTraining) {
         String sequence = protein.getSequence();
         String structure = protein.getStructure();
         StringBuilder result = new StringBuilder();
@@ -94,33 +123,25 @@ public abstract class GorMethod {
         return result.toString();
     }
 
-    public static String whichMethod(String modelPath) throws IOException {
-        // Header um Methode zu bestimmen
-        try (BufferedReader reader = new BufferedReader(new FileReader(modelPath))) {
-            String line;
+    protected abstract double[] calculateRawScores(String window);
+    protected double[][] getScores(String sequence) {
+        int len = sequence.length();
+        double[][] scores = new double[len][3];
+        int m = 8;
 
-            while ((line = reader.readLine()) != null) {
-                line = line.trim();
-                if (line.isEmpty()) continue;
-                // Header finden mehr nicht
-                if (line.startsWith("//")) {
-                    //wie beim train gor rausfinden
-                    switch (line) {
-                        case "// Matrix4D":
-                            return "GOR3";
-                        case "// Matrix6D":
-                            return "GOR4";
-                        default:
-                            return "GOR1";
-                    }
-                }
-            }
+        for (int i = 0; i < len; i++) {
+
+            String window = getPaddedWindow(sequence, i);
+
+            double[] p = calculateRawScores(window);
+            scores[i][0] = p[0]; // Score für H
+            scores[i][1] = p[1]; // Score für E
+            scores[i][2] = p[2]; // Score für C
         }
-        // kein Header einfach gor1
-        return "GOR1";
+        return scores;
     }
 
-    //GOR V
+    //GOR 5
     public String predictGor5(Alignment alignment) {
         String querySeq = alignment.getReferenceSeq();
         //länge mit gaps
@@ -177,35 +198,6 @@ public abstract class GorMethod {
             else result.append('C');
         }
         return result.toString();
-    }
-
-    public double[][] getScores(String sequence) {
-        int len = sequence.length();
-        double[][] scores = new double[len][3];
-        int m = 8;
-
-        for (int i = 0; i < len; i++) {
-
-            String window = getPaddedWindow(sequence, i);
-
-            double[] p = calculateRawScores(window);
-            scores[i][0] = p[0]; // Score für H
-            scores[i][1] = p[1]; // Score für E
-            scores[i][2] = p[2]; // Score für C
-        }
-        return scores;
-    }
-
-    protected abstract double[] calculateRawScores(String window);
-
-    private String getPaddedWindow(String seq, int center) {
-        int m = 8;
-        StringBuilder sb = new StringBuilder();
-        for (int j = center - m; j <= center + m; j++) {
-            if (j < 0 || j >= seq.length()) sb.append("-");
-            else sb.append(seq.charAt(j));
-        }
-        return sb.toString();
     }
 
 

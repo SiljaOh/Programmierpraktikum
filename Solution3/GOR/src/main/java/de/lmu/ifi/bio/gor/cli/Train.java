@@ -6,7 +6,6 @@ import de.lmu.ifi.bio.gor.methods.Gor3;
 import de.lmu.ifi.bio.gor.methods.Gor4;
 import de.lmu.ifi.bio.gor.methods.GorMethod;
 import de.lmu.ifi.bio.gor.model.Protein;
-
 import java.io.IOException;
 import java.util.List;
 
@@ -31,19 +30,20 @@ public class Train {
                 case "--model":
                     if (i + 1 < args.length) modelOutputPath = args[++i];
                     break;
-
                 default:
+                    System.err.println("Unknown argument: " + args[i]);
+                    System.err.println("Usage: java -jar train.jar --db <file> --method <gor1|gor3|gor4> --model <output>");
                     System.exit(1);
             }
         }
 
         if (trainPath == null || modelOutputPath == null) {
-            System.out.println("Usage: java -jar train.jar --db <path> --method <1> --model <output>");
-            return;
+            System.err.println("Usage: java -jar train.jar --db <file> --method <gor1|gor3|gor4> --model <output>");
+            System.exit(1);
         }
 
         //richtige gor methode
-        GorMethod gor = null;
+        GorMethod gor;
         switch (methodSelection.toLowerCase()) {
             case "gor3":
                 gor = new Gor3();
@@ -57,8 +57,7 @@ public class Train {
         }
 
         //seclib
-        SeclibParser parser = new SeclibParser();
-        List<Protein> data = parser.parseSeclib(trainPath);
+        List<Protein> data = SeclibParser.parseSeclib(trainPath);
 
         //train, get counts, no log scores
         gor.train(data);

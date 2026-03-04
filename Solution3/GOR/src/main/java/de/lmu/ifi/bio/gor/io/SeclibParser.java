@@ -1,7 +1,6 @@
 package de.lmu.ifi.bio.gor.io;
 
 import de.lmu.ifi.bio.gor.model.Protein;
-
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
@@ -15,12 +14,11 @@ public class SeclibParser {
     //          AS
     //          SS
 
-    public List<Protein> parseSeclib(String filePath) throws IOException {
+    public static List<Protein> parseSeclib(String filePath) throws IOException {
         List<Protein> proteinList = new ArrayList<>();
         File file = new File(filePath);
 
-        try (BufferedReader br = new BufferedReader(new FileReader(file))) {
-            String line;
+        try (BufferedReader br = new BufferedReader(new FileReader(filePath))) {            String line;
             String id = null;
             String as = null;
             String ss = null;
@@ -47,7 +45,6 @@ public class SeclibParser {
                     ss = trimmedLine.substring(3).trim().replaceAll("[^A-Z]","");
                 }
             }
-
 
             if (id != null && as != null && ss != null) {
                 proteinList.add(new Protein(id, as, ss));

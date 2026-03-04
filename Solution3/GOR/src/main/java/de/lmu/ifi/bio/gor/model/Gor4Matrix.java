@@ -4,15 +4,12 @@ import java.io.*;
 
 public class Gor4Matrix extends Gor3Matrix {
 
-    //6D-Matrix
-    //3*20*20*17*20*17 = 6.936.000 parameters
-    //use all possible pairs in the window and sum their probabilities
     //counts[Zustand][Zentrum AS][erster Nachbar][erste nachbar posi][zweiter nachbar][zweiter nachbar posi]
     protected final int[][][][][][] counts4 = new int[3][20][20][17][20][17];
     protected final double[][][][][][] scores4 = new double[3][20][20][17][20][17];
-
     protected final double[][][][] scores4D = new double[3][17][20][20];
 
+    private static final double PSEUDO_COUNT = 0.1;
 
     //train
     public void addCount4(char state, char centralAA, char neighborOneAA, int neighborOnePos, char neighborTwoAA, int neighborTwoPos) {
@@ -100,7 +97,7 @@ public class Gor4Matrix extends Gor3Matrix {
         }
     }
 
-    //predict, von 3
+    //predict
     public void calculateTotalsFromCounts4() {
         totalCountsPerState3 = new int[3];
         totalCountsSX = new int[3][20];
@@ -118,7 +115,7 @@ public class Gor4Matrix extends Gor3Matrix {
     //predict
     //header: Zustand, Zentrum, FixerNachbar, Offset
      //=H,Y,M-8= heisst Y ist im Zentrum und an pos -8 ist ein M || plus 4d matrix
-    public void loadModel4(String filePath) throws IOException {
+    public void loadModel(String filePath) throws IOException {
         BufferedReader reader = new BufferedReader(new FileReader(filePath));
         String line;
 
@@ -182,8 +179,7 @@ public class Gor4Matrix extends Gor3Matrix {
     }
 
     //predict
-    //formel:
-    //I = (2/(2m+1)) * sum_k sum_l>k log( f(S, a_j+k, a_j+l) / f(¬S, a_j+k, a_j+l) ) 6D Array
+    // (2/(2m+1)) * sum_k sum_l>k log( f(S, a_j+k, a_j+l) / f(¬S, a_j+k, a_j+l) ) 6D Array
     // - ((2m-1)/(2m+1)) * sum_k log( f(S, a_j+k) / f(¬S, a_j+k) ) 4D Array aus Gor3
     public void calculateScores4() {
         for (int s = 0; s < 3; s++) {
@@ -194,15 +190,14 @@ public class Gor4Matrix extends Gor3Matrix {
                             for (int p2 = 0; p2 < 17; p2++) {
 
                                 if (counts4[0][z][n1][p1][n2][p2] == 0 && counts4[1][z][n1][p1][n2][p2] == 0 && counts4[2][z][n1][p1][n2][p2] == 0) {
-                                    //nie gesehen -> egal
+                                    //paar nie gesehen -> egal also 0 setzen
                                     scores4[s][z][n1][p1][n2][p2] = 0.0;
                                     continue;
                                 }
-                                double pseudoCount = 0.1;
                                 //der zustand mit dem paar für den pseudocount
-                                double fS = counts4[s][z][n1][p1][n2][p2] + pseudoCount;
+                                double fS = counts4[s][z][n1][p1][n2][p2] + PSEUDO_COUNT;
                                 //2 mal für 2 zustände
-                                double f_S = pseudoCount * 2;
+                                double f_S = PSEUDO_COUNT * 2;
                                 for (int o = 0; o < 3; o++) {
                                     if (o != s) {
                                         //counts der anderen zustände
@@ -225,11 +220,8 @@ public class Gor4Matrix extends Gor3Matrix {
                 for (int c = 0; c < 20; c++)
                     for (int a = 0; a < 20; a++) {
 
-                        //0.1 is best rn
-                        double pseudoCount = 0.1;
-
-                        double fSA  = counts3[s][p][c][a] + pseudoCount;
-                        double f_SA = 2* pseudoCount;
+                        double fSA  = counts3[s][p][c][a] + PSEUDO_COUNT;
+                        double f_SA = 2* PSEUDO_COUNT;
                         for (int o = 0; o < 3; o++) {
                             if (o != s) {
                                 //counts andere zustände...
@@ -242,49 +234,15 @@ public class Gor4Matrix extends Gor3Matrix {
         }
     }
 
-    // predict
+    // predict, fast wie gor5 best state
     public char getBestState4(String window) {
-        int m = 8;
-        int N = 17;
-        double[] totals = new double[3];
-
-        int[] windowIndices = new int[N];
-        for (int i = 0; i < N; i++) {
-            windowIndices[i] = getAaIndex(window.charAt(i));
-        }
-
-        int centerIdx = windowIndices[m];
-        if (centerIdx == -1) centerIdx = 0;
-
-        for (int s = 0; s < 3; s++) {
-            double sum6D = 0;
-            double sum4D = 0;
-
-            for (int k = 0; k < N; k++) {
-                int aaK = windowIndices[k];
-                if (aaK == -1) continue;
-
-                // Minus-Term
-                sum4D += scores4D[s][k][centerIdx][aaK];
-
-                // Plus-Term: alle Paare l > k
-                for (int l = k + 1; l < N; l++) {
-                    int aaL = windowIndices[l];
-                    if (aaL == -1) continue;
-                    sum6D += scores4[s][centerIdx][aaK][k][aaL][l];
-                }
-            }
-
-            // Formel: (2/17) * sum6D - (15/17) * sum4D
-            totals[s] = (2.0 / N) * sum6D - ((2.0 * m - 1.0) / N) * sum4D;
-        }
-
+        double[] totals = getBestStateGorV(window);
         if (totals[0] >= totals[1] && totals[0] >= totals[2]) return 'H';
         if (totals[1] >= totals[0] && totals[1] >= totals[2]) return 'E';
         return 'C';
     }
 
-    //für GorV
+    //für Gor5
     @Override
     public double[] getBestStateGorV(String window) {
         int m = 8;
@@ -306,23 +264,18 @@ public class Gor4Matrix extends Gor3Matrix {
             for (int k = 0; k < N; k++) {
                 int aaK = windowIndices[k];
                 if (aaK == -1) continue;
-
-                // Minus-Term
                 sum4D += scores4D[s][k][centerIdx][aaK];
 
-                // Plus-Term: alle Paare l > k
+                // alle Paare l > k
                 for (int l = k + 1; l < N; l++) {
                     int aaL = windowIndices[l];
                     if (aaL == -1) continue;
                     sum6D += scores4[s][centerIdx][aaK][k][aaL][l];
                 }
             }
-
             // Formel: (2/17) * sum6D - (15/17) * sum4D
             totals[s] = (2.0 / N) * sum6D - ((2.0 * m - 1.0) / N) * sum4D;
         }
         return totals;
     }
-
-
 }

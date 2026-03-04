@@ -8,12 +8,14 @@ import java.util.List;
 public class Gor4 extends GorMethod {
 
 
+    private final Gor4Matrix gor4Matrix = new Gor4Matrix();
+
     public Gor4() {
-        this.matrix=new Gor4Matrix();
+        this.matrix = gor4Matrix;
     }
 
     public Gor4Matrix getMatrix4() {
-        return (Gor4Matrix) this.matrix;
+        return gor4Matrix;
     }
 
     @Override
@@ -37,8 +39,6 @@ public class Gor4 extends GorMethod {
             return;
         }
 
-        Gor4Matrix gor4Matrix = (Gor4Matrix) this.matrix;
-
         char centralAA = window.charAt(8);
 
         //Ohne l > k zählt man jedes Paar doppelt
@@ -57,7 +57,8 @@ public class Gor4 extends GorMethod {
             gor4Matrix.addCount3(target, m, centralAA, neighbourAA);
         }
     }
-    //GorV:
+
+    //Gor5:
     @Override
     protected double[] calculateRawScores(String window) {
         return this.matrix.getBestStateGorV(window);

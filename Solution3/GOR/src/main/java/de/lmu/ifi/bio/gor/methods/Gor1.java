@@ -2,11 +2,8 @@ package de.lmu.ifi.bio.gor.methods;
 
 import de.lmu.ifi.bio.gor.model.GorMatrix;
 import de.lmu.ifi.bio.gor.model.Protein;
-
-
 import java.util.List;
 
-//KONSTANTEN
 
 public class Gor1 extends GorMethod{
 
@@ -15,10 +12,6 @@ public class Gor1 extends GorMethod{
     }
 
     @Override
-    //calculate probabilities of observing state i = {H, E, C}
-    // at the central window position when finding residue X at
-    //position +-8 from central position in training set
-    //aim: 3 matrices with 17*20 entries each
     public void train(List<Protein> data) {
         for(Protein p : data){
             this.slidingWindow(p,true);
@@ -45,7 +38,7 @@ public class Gor1 extends GorMethod{
         }
     }
 
-    //GorV:
+    //Gor5:
     @Override
     protected double[] calculateRawScores(String window) {
         return this.matrix.getBestStateGorV(window);

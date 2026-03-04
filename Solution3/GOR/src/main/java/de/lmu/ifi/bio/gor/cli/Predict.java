@@ -9,16 +9,14 @@ import de.lmu.ifi.bio.gor.model.Protein;
 import de.lmu.ifi.bio.gor.io.AlnParser;
 
 import java.io.File;
+import java.io.FilenameFilter;
 import java.io.IOException;
 import java.util.List;
 
-import static de.lmu.ifi.bio.gor.io.AlnParser.parseAlignment;
 
 public class Predict {
 
     public static void main(String[] args) throws IOException {
-
-        //java -jar predict.jar --model <file> --seq <file> [--format <txt|html>] [--probabilities]
 
         String modelPath = null;
         String seqPath = null;
@@ -27,8 +25,8 @@ public class Predict {
         boolean probabilities = false;
         String alnPath = null;
 
+        //jedes Argument durch gehen
         for (int i = 0; i < args.length; i++) {
-            //jedes Argument durch gehen
             switch (args[i]) {
                 case "--model":
                     if (i + 1 < args.length) modelPath = args[++i];
@@ -40,7 +38,6 @@ public class Predict {
                     if (i + 1 < args.length) format = args[++i];
                     break;
                 case "--probabilities":
-                    //Vorhanden oder nicht vorhanden
                     probabilities = true;
                     break;
                 case "--maf":
@@ -61,41 +58,41 @@ public class Predict {
             System.exit(1);
         }
 
-        // ... nach der Argumente-Verarbeitung ...
-
         String methodType = GorMethod.whichMethod(modelPath);
         GorMethod gor;
 
-        if (methodType.equals("GOR1")) {
-            gor = new Gor1();
-            gor.getMatrix().loadModel(modelPath);
-        } else if (methodType.equals("GOR3")) {
-            gor = new Gor3();
-            ((Gor3) gor).getMatrix3().loadModel3(modelPath);
-        } else {
-            gor = new Gor4();
-            ((Gor4) gor).getMatrix4().loadModel4(modelPath);
+        switch (methodType) {
+            case "GOR3":
+                gor = new Gor3();
+                break;
+            case "GOR4":
+                gor = new Gor4();
+                break;
+            default:
+                gor = new Gor1();
         }
+        gor.getMatrix().loadModel(modelPath);
 
         //entweder --seq oder --maf
         if (seqPath != null) {
-            // Standard GOR Vorhersage
             List<Protein> proteins = GorMethod.readFasta(seqPath);
             for (Protein p : proteins) {
                 if (p.getSequence().length() < 17) continue;
                 String result = gor.predict(p.getSequence());
                 printResult(p.getId(), p.getSequence(), result);
             }
-        } else if (alnPath != null) {
-            // GOR V
+        } else {
             File mafDir = new File(alnPath);
-            File[] alnFiles = mafDir.listFiles((dir, name) -> name.endsWith(".aln"));
-
+            File[] alnFiles = mafDir.listFiles(new FilenameFilter() {
+                @Override
+                public boolean accept(File dir, String name) {
+                    return name.endsWith(".aln");
+                }
+            });
             if (alnFiles != null) {
                 for (File alnFile : alnFiles) {
                     Alignment alignment = AlnParser.parseAlignment(alnFile.getPath());
                     if (alignment == null) continue;
-
                     String result = gor.predictGor5(alignment);
                     printResult(alignment.getId(), alignment.getReferenceSeq(), result);
                 }

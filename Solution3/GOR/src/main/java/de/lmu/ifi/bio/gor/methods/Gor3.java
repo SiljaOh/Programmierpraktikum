@@ -7,12 +7,14 @@ import java.util.List;
 
 public class Gor3 extends GorMethod{
 
+    private final Gor3Matrix gor3Matrix = new Gor3Matrix();
+
     public Gor3() {
-        this.matrix=new Gor3Matrix();
+        this.matrix = gor3Matrix;
     }
 
     public Gor3Matrix getMatrix3() {
-        return (Gor3Matrix) this.matrix;
+        return gor3Matrix;
     }
 
     @Override
@@ -36,25 +38,20 @@ public class Gor3 extends GorMethod{
             result.append(bestState);
             return;
         }
-
-        //matrix auf Gor3Matrix casten! (Gor3Matrix erbt von GorMatrix)
-        Gor3Matrix gor3Matrix = (Gor3Matrix) this.matrix;
-
-        char centralAA = window.charAt(8); //Anker X an pos j
+        char centralAA = window.charAt(8);
 
         //für das gesamte zentrum:
         for (int m = 0; m < 17; m++) {
-            char neighborAA = window.charAt(m); //Nachbar Y an Position j+m
-
-            //Paar-Information (Zentrum, Nachbar, Position)
+            //Nachbar Y an Position j+m
+            char neighborAA = window.charAt(m);
+            //Paar infos (Zentrum, Nachbar, Position)
             gor3Matrix.addCount3(target, m, centralAA, neighborAA);
         }
     }
 
-    //GorV:
+    //Gor5:
     @Override
     protected double[] calculateRawScores(String window) {
         return this.matrix.getBestStateGorV(window);
     }
-
 }
