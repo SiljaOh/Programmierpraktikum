@@ -10,7 +10,7 @@ public class Gor4Matrix extends Gor3Matrix {
     //counts[Zustand][Zentrum AS][erster Nachbar][erste nachbar posi][zweiter nachbar][zweiter nachbar posi]
     protected final int[][][][][][] counts4 = new int[3][20][20][17][20][17];
     protected final double[][][][][][] scores4 = new double[3][20][20][17][20][17];
-    // wie scores 3
+
     protected final double[][][][] scores4D = new double[3][17][20][20];
 
 
@@ -193,17 +193,22 @@ public class Gor4Matrix extends Gor3Matrix {
                         for (int n2 = 0; n2 < 20; n2++) {
                             for (int p2 = 0; p2 < 17; p2++) {
 
-                                double fS = counts4[s][z][n1][p1][n2][p2];
-                                double f_S = 0;
-                                for (int o = 0; o < 3; o++) {
-                                    if (o != s) f_S += counts4[o][z][n1][p1][n2][p2];
-                                }
-
-                                if (fS == 0 || f_S == 0) {
+                                if (counts4[0][z][n1][p1][n2][p2] == 0 && counts4[1][z][n1][p1][n2][p2] == 0 && counts4[2][z][n1][p1][n2][p2] == 0) {
+                                    //nie gesehen -> egal
                                     scores4[s][z][n1][p1][n2][p2] = 0.0;
                                     continue;
                                 }
-
+                                double pseudoCount = 0.1;
+                                //der zustand mit dem paar für den pseudocount
+                                double fS = counts4[s][z][n1][p1][n2][p2] + pseudoCount;
+                                //2 mal für 2 zustände
+                                double f_S = pseudoCount * 2;
+                                for (int o = 0; o < 3; o++) {
+                                    if (o != s) {
+                                        //counts der anderen zustände
+                                        f_S += counts4[o][z][n1][p1][n2][p2];
+                                    }
+                                }
                                 scores4[s][z][n1][p1][n2][p2] = Math.log(fS / f_S);
                             }
                         }
@@ -217,22 +222,20 @@ public class Gor4Matrix extends Gor3Matrix {
     public void calculateScores4D() {
         for (int s = 0; s < 3; s++) {
             for (int p = 0; p < 17; p++) {
-                for (int c = 0; c < 20; c++) {
+                for (int c = 0; c < 20; c++)
                     for (int a = 0; a < 20; a++) {
 
-                        double fSA = counts3[s][p][c][a];
-                        double f_SA = 0;
+                        double pseudoCount = 0.1;
+
+                        double fSA  = counts3[s][p][c][a] + pseudoCount;
+                        double f_SA = 2* pseudoCount;
                         for (int o = 0; o < 3; o++) {
-                            if (o != s) f_SA += counts3[o][p][c][a];
+                            if (o != s) {
+                                //counts andere zustände...
+                                f_SA += counts3[o][p][c][a];
+                            }
                         }
-
-                        if (fSA == 0 || f_SA == 0) {
-                            scores4D[s][p][c][a] = 0.0;
-                            continue;
-                        }
-
                         scores4D[s][p][c][a] = Math.log(fSA / f_SA);
-                    }
                 }
             }
         }
