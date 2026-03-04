@@ -81,13 +81,11 @@ public class Predict {
 
         }else if (GOR.equals("GOR4")) {
             Gor4 gor4 = new Gor4();
-
             gor4.getMatrix4().loadModel4(modelPath);
-
             List<Protein> proteins = GorMethod.readFasta(seqPath);
             for (Protein protein : proteins) {
                 String result = gor4.predict(protein.getSequence());
-
+                if (protein.getSequence().length() < 17) continue;
                 System.out.println("> " + protein.getId());
                 System.out.println("AS " + protein.getSequence());
                 System.out.println("PS " + result + "\n");

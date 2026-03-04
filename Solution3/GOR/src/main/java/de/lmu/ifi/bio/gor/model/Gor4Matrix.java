@@ -10,8 +10,8 @@ public class Gor4Matrix extends Gor3Matrix {
     //counts[Zustand][Zentrum AS][erster Nachbar][erste nachbar posi][zweiter nachbar][zweiter nachbar posi]
     protected final int[][][][][][] counts4 = new int[3][20][20][17][20][17];
     protected final double[][][][][][] scores4 = new double[3][20][20][17][20][17];
-
-     int[][] totalCountsSX = new int[3][20];
+    // wie scores 3
+    protected final double[][][][] scores4D = new double[3][17][20][20];
 
 
     //train
@@ -100,25 +100,16 @@ public class Gor4Matrix extends Gor3Matrix {
         }
     }
 
-    //predict)
+    //predict, von 3
     public void calculateTotalsFromCounts4() {
-        // 1. Reset der geerbten Gor3-Felder (für P(S,X) und P(S))
-        for (int s = 0; s < 3; s++) {
-            java.util.Arrays.fill(totalCountsSX[s], 0);
-            totalCountsPerState3[s] = 0;
-        }
+        totalCountsPerState3 = new int[3];
+        totalCountsSX = new int[3][20];
 
-        // 2. Totals aus dem 4D-Teil (GOR III) extrahieren
-        // Da loadModel4 die counts3 befüllt hat, nutzen wir diese für die Basis-Statistik
         for (int s = 0; s < 3; s++) {
             for (int z = 0; z < 20; z++) {
-                // Wir schauen uns die Zentrum-Position (8) im counts3 an
                 for (int a = 0; a < 20; a++) {
-                    int c = counts3[s][8][z][a];
-                    if (c > 0) {
-                        totalCountsSX[s][z] += c;
-                        totalCountsPerState3[s] += c;
-                    }
+                    totalCountsPerState3[s] += counts3[s][8][z][a];
+                    totalCountsSX[s][z] += counts3[s][8][z][a];
                 }
             }
         }
@@ -126,7 +117,7 @@ public class Gor4Matrix extends Gor3Matrix {
 
     //predict
     //header: Zustand, Zentrum, FixerNachbar, Offset
-     //=H,Y,M-8= heisst Y ist im Zentrum und an pos -8 ist ein M
+     //=H,Y,M-8= heisst Y ist im Zentrum und an pos -8 ist ein M || plus 4d matrix
     public void loadModel4(String filePath) throws IOException {
         BufferedReader reader = new BufferedReader(new FileReader(filePath));
         String line;
@@ -163,18 +154,19 @@ public class Gor4Matrix extends Gor3Matrix {
                     gor3Zentrum = getAaIndex(parts[0].charAt(0));
                     gor3Zustand = getStateIndex(parts[1].charAt(0));
                 }
+
             } else {
                 String[] values = line.split("\\s+");
                 if (values.length == 18) {
                     int n2Idx = getAaIndex(values[0].charAt(0));
                     if (n2Idx == -1) continue;
 
-                    if (!isMatrix4DSection && sIdx != -1) {
+                    if (!isMatrix4DSection && sIdx != -1 && zIdx != -1 && n1Idx != -1 && p1Idx != -1) {
                         // In counts4 speichern
                         for (int p2Idx = 0; p2Idx < 17; p2Idx++) {
                             counts4[sIdx][zIdx][n1Idx][p1Idx][n2Idx][p2Idx] = Integer.parseInt(values[p2Idx + 1]);
                         }
-                    } else if (isMatrix4DSection && gor3Zustand != -1) {
+                    } else if (isMatrix4DSection && gor3Zustand != -1 && gor3Zentrum != -1) {
                         // In counts3 speichern (geerbt von Gor3Matrix)
                         for (int pIdx = 0; pIdx < 17; pIdx++) {
                             counts3[gor3Zustand][pIdx][gor3Zentrum][n2Idx] = Integer.parseInt(values[pIdx + 1]);
@@ -185,8 +177,6 @@ public class Gor4Matrix extends Gor3Matrix {
         }
         reader.close();
 
-        // Wichtig: Da die Datei nun beide Daten enthält, musst du NICHTS mehr "retten".
-        // Du berechnest einfach beide Scores.
         calculateTotalsFromCounts4();
         calculateScores4();
     }
@@ -196,76 +186,91 @@ public class Gor4Matrix extends Gor3Matrix {
     //I = (2/(2m+1)) * sum_k sum_l>k log( f(S, a_j+k, a_j+l) / f(¬S, a_j+k, a_j+l) ) 6D Array
     // - ((2m-1)/(2m+1)) * sum_k log( f(S, a_j+k) / f(¬S, a_j+k) ) 4D Array aus Gor3
     public void calculateScores4() {
-
-        double pseudoCount = 0.5;
-
         for (int s = 0; s < 3; s++) {
-            for (int z = 0; z < 20; z++) { // ZentrumAS
-                for (int n1 = 0; n1 < 20; n1++) { //Nachbar1AS an Pos k
-                    for (int p1 = 0; p1 < 17; p1++) {//PosK
-                        for (int n2 = 0; n2 < 20; n2++) { //Nachbar2AS an Pos l
-                            for (int p2 = 0; p2 < 17; p2++) {//PosL
+            for (int z = 0; z < 20; z++) {
+                for (int n1 = 0; n1 < 20; n1++) {
+                    for (int p1 = 0; p1 < 17; p1++) {
+                        for (int n2 = 0; n2 < 20; n2++) {
+                            for (int p2 = 0; p2 < 17; p2++) {
 
-                                // f(S, a_k, a_l)
-                                double fS = counts4[s][z][n1][p1][n2][p2] + pseudoCount;
-
-                                // f(¬S, a_k, a_l)
-                                double fNotS = 2* pseudoCount;
+                                double fS = counts4[s][z][n1][p1][n2][p2];
+                                double f_S = 0;
                                 for (int o = 0; o < 3; o++) {
-                                    if (o != s) {
-                                        fNotS += counts4[o][z][n1][p1][n2][p2];
-                                    }
+                                    if (o != s) f_S += counts4[o][z][n1][p1][n2][p2];
                                 }
 
-                                // log( f(S) / f(¬S) )
-                                scores4[s][z][n1][p1][n2][p2] = Math.log(fS / fNotS);
+                                if (fS == 0 || f_S == 0) {
+                                    scores4[s][z][n1][p1][n2][p2] = 0.0;
+                                    continue;
+                                }
+
+                                scores4[s][z][n1][p1][n2][p2] = Math.log(fS / f_S);
                             }
                         }
                     }
                 }
             }
         }
-        calculateScores3();
+        calculateScores4D();
     }
 
+    public void calculateScores4D() {
+        for (int s = 0; s < 3; s++) {
+            for (int p = 0; p < 17; p++) {
+                for (int c = 0; c < 20; c++) {
+                    for (int a = 0; a < 20; a++) {
 
-    //predict
+                        double fSA = counts3[s][p][c][a];
+                        double f_SA = 0;
+                        for (int o = 0; o < 3; o++) {
+                            if (o != s) f_SA += counts3[o][p][c][a];
+                        }
+
+                        if (fSA == 0 || f_SA == 0) {
+                            scores4D[s][p][c][a] = 0.0;
+                            continue;
+                        }
+
+                        scores4D[s][p][c][a] = Math.log(fSA / f_SA);
+                    }
+                }
+            }
+        }
+    }
+
     // predict
     public char getBestState4(String window) {
         int m = 8;
         int N = 17;
         double[] totals = new double[3];
 
-        // PERFORMANCE-BOOSTER:
-        // Indizes des gesamten Fensters vorab einmal berechnen
         int[] windowIndices = new int[N];
         for (int i = 0; i < N; i++) {
             windowIndices[i] = getAaIndex(window.charAt(i));
         }
 
-        // Das Zentrum aus dem vorbereiteten Array holen
         int centerIdx = windowIndices[m];
-        if (centerIdx == -1) centerIdx = 0; // Fallback für unbekannte AS
+        if (centerIdx == -1) centerIdx = 0;
 
         for (int s = 0; s < 3; s++) {
             double sum6D = 0;
             double sum4D = 0;
 
             for (int k = 0; k < N; k++) {
-                int aaK = windowIndices[k]; // Schnellzugriff aufs Array
+                int aaK = windowIndices[k];
                 if (aaK == -1) continue;
 
-                // Der GOR 3 Teil (Minus-Term)
-                sum4D += scores3[s][k][centerIdx][aaK];
+                // Minus-Term
+                sum4D += scores4D[s][k][centerIdx][aaK];
 
-                // Der GOR 4 Teil (6D Doppelsumme l > k)
+                // Plus-Term: alle Paare l > k
                 for (int l = k + 1; l < N; l++) {
-                    int aaL = windowIndices[l]; // Schnellzugriff aufs Array
+                    int aaL = windowIndices[l];
                     if (aaL == -1) continue;
-
                     sum6D += scores4[s][centerIdx][aaK][k][aaL][l];
                 }
             }
+
             // Formel: (2/17) * sum6D - (15/17) * sum4D
             totals[s] = (2.0 / N) * sum6D - ((2.0 * m - 1.0) / N) * sum4D;
         }
