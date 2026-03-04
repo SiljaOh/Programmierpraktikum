@@ -20,6 +20,7 @@ public class Predict {
         //Default
         String format = "txt";
         boolean probabilities = false;
+        String alnPath = null;
 
         for (int i = 0; i < args.length; i++) {
             //jedes Argument durch gehen
@@ -36,6 +37,9 @@ public class Predict {
                 case "--probabilities":
                     //Vorhanden oder nicht vorhanden
                     probabilities = true;
+                    break;
+                case "--maf":
+                    if (i + 1 < args.length) alnPath = args[++i];
                     break;
                 //nicht sangegeben
                 default:
@@ -55,9 +59,7 @@ public class Predict {
 
             Gor1 gor1 = new Gor1();
             gor1.getMatrix().loadModel(modelPath);
-
             List<Protein> proteins = GorMethod.readFasta(seqPath);
-
             for (Protein protein : proteins) {
                 //um auf selbe Anzahl Protein zu kommen
                 if (protein.getSequence().length() < 17) continue;
@@ -79,7 +81,7 @@ public class Predict {
                 System.out.println("PS " + result + "\n");
             }
 
-        }else if (GOR.equals("GOR4")) {
+        } else if (GOR.equals("GOR4")) {
             Gor4 gor4 = new Gor4();
             gor4.getMatrix4().loadModel4(modelPath);
             List<Protein> proteins = GorMethod.readFasta(seqPath);
@@ -89,6 +91,22 @@ public class Predict {
                 System.out.println("> " + protein.getId());
                 System.out.println("AS " + protein.getSequence());
                 System.out.println("PS " + result + "\n");
+            }
+        }
+
+        if (alnPath != null) {
+            if (GOR.equals("GOR1")) {
+                Gor1 gor5gor1 = new Gor1();
+
+
+            } else if (GOR.equals("GOR3")) {
+
+
+                Gor3 gor5gor3 = new Gor3();
+            } else if (GOR.equals("GOR4")) {
+
+
+                Gor4 gor5gor4 = new Gor4();
             }
         }
 
