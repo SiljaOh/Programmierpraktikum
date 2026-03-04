@@ -225,6 +225,7 @@ public class Gor4Matrix extends Gor3Matrix {
                 for (int c = 0; c < 20; c++)
                     for (int a = 0; a < 20; a++) {
 
+                        //0.1 is best rn
                         double pseudoCount = 0.1;
 
                         double fSA  = counts3[s][p][c][a] + pseudoCount;

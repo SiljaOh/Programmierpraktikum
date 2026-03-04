@@ -12,6 +12,7 @@ public class Gor3Matrix extends GorMatrix {
     protected final int[][][][] counts3 = new int[3][17][20][20];
     protected final double[][][][] scores3 = new double[3][17][20][20];
 
+
     //gor3 hat zusätzlcih; Wie oft tritt Zentrum X in Zustand S auf?
     //P(S,X)
     //s = 3 , a = 20
@@ -126,6 +127,7 @@ public class Gor3Matrix extends GorMatrix {
     //predict
     //I = log( f(S, a_j, a_{j+k}) / f(¬S, a_j, a_{j+k}) ) + log( f(¬S, a_j) / f(S, a_j) )
     public void calculateScores3() {
+        double pseudoCount = 0.1;
         for (int s = 0; s < 3; s++) {
             for (int p = 0; p < 17; p++) {
                 //Zentrum AS a_j
@@ -135,9 +137,9 @@ public class Gor3Matrix extends GorMatrix {
 
                         // log( f(S, a_j, a_{j+k}) / f(¬S, a_j, a_{j+k}) )
                         //wie oft zentrum c nachbar a paar an posi p zusand s
-                        double fSA = counts3[s][p][c][a];
+                        double fSA = counts3[s][p][c][a] + pseudoCount;
                         //wie oft gleiches par anderer zustand
-                        double f_SA = 0;
+                        double f_SA = pseudoCount * 2;
                         for (int o = 0; o < 3; o++) {
                             if (o != s) {
                                 f_SA += counts3[o][p][c][a];
@@ -146,17 +148,13 @@ public class Gor3Matrix extends GorMatrix {
 
                         // log( f(¬S, a_j) / f(S, a_j) )
                         //zentrum as c alleine in zustand
-                        double fSX = totalCountsSX[s][c];
+                        double fSX = totalCountsSX[s][c] + pseudoCount;
                         //wie oft in anderem
-                        double f_SX = 0;
+                        double f_SX = pseudoCount * 2;
                         for (int o = 0; o < 3; o++) {
                             if (o != s) f_SX += totalCountsSX[o][c];  // f(¬S, a_j)
                         }
-                        //nich bwi 1
-                        if (fSA == 0 || f_SA == 0 || fSX == 0 || f_SX == 0) {
-                            scores3[s][p][c][a] = 0.0;
-                            continue;
-                        }
+
 
                         scores3[s][p][c][a] = Math.log(fSA / f_SA) + Math.log(f_SX / fSX);
                     }
