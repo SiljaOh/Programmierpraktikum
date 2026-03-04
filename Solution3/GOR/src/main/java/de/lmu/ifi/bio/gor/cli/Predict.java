@@ -2,6 +2,7 @@ package de.lmu.ifi.bio.gor.cli;
 
 import de.lmu.ifi.bio.gor.methods.Gor1;
 import de.lmu.ifi.bio.gor.methods.Gor3;
+import de.lmu.ifi.bio.gor.methods.Gor4;
 import de.lmu.ifi.bio.gor.methods.GorMethod;
 import de.lmu.ifi.bio.gor.model.Protein;
 
@@ -78,9 +79,23 @@ public class Predict {
                 System.out.println("PS " + result + "\n");
             }
 
+        }else if (GOR.equals("GOR4")) {
+            Gor4 gor4 = new Gor4();
+
+            gor4.getMatrix4().loadModel4(modelPath);
+
+            List<Protein> proteins = GorMethod.readFasta(seqPath);
+            for (Protein protein : proteins) {
+                String result = gor4.predict(protein.getSequence());
+
+                System.out.println("> " + protein.getId());
+                System.out.println("AS " + protein.getSequence());
+                System.out.println("PS " + result + "\n");
+            }
         }
 
     }
+
 }
 
 

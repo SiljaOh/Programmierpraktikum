@@ -270,7 +270,6 @@ public class Gor4Matrix extends Gor3Matrix {
             totals[s] = (2.0 / N) * sum6D - ((2.0 * m - 1.0) / N) * sum4D;
         }
 
-        // Winner-Logik
         if (totals[0] >= totals[1] && totals[0] >= totals[2]) return 'H';
         if (totals[1] >= totals[0] && totals[1] >= totals[2]) return 'E';
         return 'C';
