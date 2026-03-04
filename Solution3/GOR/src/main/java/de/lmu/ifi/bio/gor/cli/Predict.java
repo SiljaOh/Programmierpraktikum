@@ -6,10 +6,13 @@ import de.lmu.ifi.bio.gor.methods.Gor4;
 import de.lmu.ifi.bio.gor.methods.GorMethod;
 import de.lmu.ifi.bio.gor.model.Alignment;
 import de.lmu.ifi.bio.gor.model.Protein;
+import de.lmu.ifi.bio.gor.io.AlnParser;
 
 import java.io.File;
 import java.io.IOException;
 import java.util.List;
+
+import static de.lmu.ifi.bio.gor.io.AlnParser.parseAlignment;
 
 public class Predict {
 
@@ -109,19 +112,20 @@ public class Predict {
                 Gor1 gor5gor1 = new Gor1();
                 gor5gor1.getMatrix().loadModel(modelPath);
                 for (File alnFile : alnFiles) {
-                    List<Alignment> alignments = GorMethod.parseAlignment(alnFile.getPath());
-                    for (Alignment alignment : alignments) {
-                        String result = gor5gor1.predictGor5(alignment);
-                        System.out.println(">" + alignment.getId());
-                        System.out.println("AS " + alignment.getQuerySeq());
-                        System.out.println("PS " + result + "\n");
-                    }
+                    Alignment alignment = AlnParser.parseAlignment(alnFile.getPath());
+                    if (alignment == null) continue;
+                    String result = gor5gor1.predictGor5(alignment);
+                    System.out.println(">" + alignment.getId());
+                    System.out.println("AS " + alignment.getReferenceSeq());
+                    System.out.println("PS " + result + "\n");
                 }
-            } else if (GOR.equals("GOR3")) {
+            }
+            else if (GOR.equals("GOR3")) {
 
 
                 Gor3 gor5gor3 = new Gor3();
-            } else if (GOR.equals("GOR4")) {
+            }
+            else if (GOR.equals("GOR4")) {
 
 
                 Gor4 gor5gor4 = new Gor4();

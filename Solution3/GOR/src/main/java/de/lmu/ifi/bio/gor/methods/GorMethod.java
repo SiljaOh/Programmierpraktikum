@@ -120,10 +120,8 @@ public abstract class GorMethod {
         return "GOR1";
     }
 
-    public abstract double[][] getScores(String sequence);
-
     public String predictGor5(Alignment alignment) {
-        String querySeq = alignment.getQuerySeq();
+        String querySeq = alignment.getReferenceSeq();
         //länge mit gaps
         int queryLen = querySeq.length();
         //Summen arrays für H E C Scores pro Position
@@ -134,7 +132,7 @@ public abstract class GorMethod {
         //Sequenz plus alle homologen
         List<String> allSeqs = new ArrayList<>();
         allSeqs.add(querySeq);
-        allSeqs.addAll(alignment.getHomologs());
+        allSeqs.addAll(alignment.getHomologues());
 
         //zu kleine sequenzen filtern
         for (String seq : allSeqs) {

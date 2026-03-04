@@ -3,11 +3,9 @@ package de.lmu.ifi.bio.gor.io;
 import de.lmu.ifi.bio.gor.model.Alignment;
 
 import java.io.BufferedReader;
-import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
+
 
 public class AlnParser {
 
