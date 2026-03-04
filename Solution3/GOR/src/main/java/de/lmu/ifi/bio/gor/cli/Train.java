@@ -58,17 +58,13 @@ public class Train {
 
         //seclib
         SeclibParser parser = new SeclibParser();
-        List<Protein> data = parser.parseSeclib(trainPath); // Pfad aus den CLI-Args
+        List<Protein> data = parser.parseSeclib(trainPath);
 
         //train, get counts, no log scores
         gor.train(data);
 
-        // 3. Speichern (schreibt die Datei, die du mir per cat gezeigt hast)
+        //Speichern
         gor.getMatrix().save(modelOutputPath);
-
-        //Tausch ab GOR4
-
-
 
     }
 }
