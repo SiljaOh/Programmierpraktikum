@@ -198,7 +198,7 @@ public class Gor4Matrix extends Gor3Matrix {
                                     scores4[s][z][n1][p1][n2][p2] = 0.0;
                                     continue;
                                 }
-                                double pseudoCount = 0.05;
+                                double pseudoCount = 0.1;
                                 //der zustand mit dem paar für den pseudocount
                                 double fS = counts4[s][z][n1][p1][n2][p2] + pseudoCount;
                                 //2 mal für 2 zustände
@@ -226,7 +226,7 @@ public class Gor4Matrix extends Gor3Matrix {
                     for (int a = 0; a < 20; a++) {
 
                         //0.1 is best rn
-                        double pseudoCount = 0.05;
+                        double pseudoCount = 0.1;
 
                         double fSA  = counts3[s][p][c][a] + pseudoCount;
                         double f_SA = 2* pseudoCount;
