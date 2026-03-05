@@ -104,7 +104,7 @@ public class Predict {
     private static void printResult(String id, String as, String ps, boolean probabilities, GorMethod gor) {
         System.out.println("> " + id);
         System.out.println("AS " + as);
-        System.out.println("PS " + ps + "\n");
+        System.out.println("PS " + ps);
         if (probabilities) {
             printProbabilities(as, gor);
             System.out.println();
@@ -113,14 +113,16 @@ public class Predict {
 
     private static void printProbabilities(String sequence, GorMethod gor) {
         double[][] raw = gor.getScores(sequence);
-        String[] labels = {"P(H)", "P(E)", "P(C)"};
+        String[] labels = {"PH", "PE", "PC"};
+        int m = 8;
         for (int s = 0; s < 3; s++) {
-            StringBuilder sb = new StringBuilder(labels[s] + " ");
-            for (double[] pos : raw) {
-                double[] exp = {Math.exp(pos[0]), Math.exp(pos[1]), Math.exp(pos[2])};
+            StringBuilder sb = new StringBuilder(labels[s] + " --------");
+            for (int i = m; i < raw.length - m; i++) {
+                double[] exp = {Math.exp(raw[i][0]), Math.exp(raw[i][1]), Math.exp(raw[i][2])};
                 double sum = exp[0] + exp[1] + exp[2];
-                sb.append(String.format("%.2f ", exp[s] / sum));
+                sb.append((int)(exp[s] / sum * 10));
             }
+            sb.append("--------");
             System.out.println(sb);
         }
     }
