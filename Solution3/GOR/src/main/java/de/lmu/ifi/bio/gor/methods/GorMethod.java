@@ -209,7 +209,8 @@ public abstract class GorMethod {
     }
 
 
-    //BONUS: postprocessign
+    //BONUS: postprocess, noch mehr ausprobieren!
+    //noch mehr
     public String postProcess(String prediction) {
         if (prediction == null || prediction.length() < 3) return prediction;
 

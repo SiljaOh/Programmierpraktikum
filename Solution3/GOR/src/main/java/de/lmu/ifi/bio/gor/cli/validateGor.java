@@ -1,5 +1,10 @@
 package de.lmu.ifi.bio.gor.cli;
 
+import de.lmu.ifi.bio.gor.methods.Evaluator;
+import de.lmu.ifi.bio.gor.model.ValidationResult;
+import java.io.*;
+import java.util.*;
+
 public class validateGor {
 
     public static void main(String[] args) {
@@ -36,6 +41,69 @@ public class validateGor {
             }
 
         }
+        if (predictionFile == null || seclibFile == null) {
+            System.err.println("Prediction file and Reference file are required");
+            System.exit(1);
+        }
+
+        try {
+            //parse fasta
+            Map<String, String> predictions = parseFasta(predictionFile);
+            Map<String, String> references = parseFasta(seclibFile);
+
+            Evaluator eval = new Evaluator();
+            List<ValidationResult> results = new ArrayList<>();
+
+            //berechnung von q3,sov,qh,qe,qc für jedes protein
+            for (String id : predictions.keySet()) {
+                if (references.containsKey(id)) {
+                    String ps = predictions.get(id);
+                    String ss = references.get(id);
+
+                    double q3 = eval.calculateQ3(ps, ss);
+                    double sov = eval.calculateSOV(ps, ss);
+                    double qH = eval.calculateQobs(ps, ss, 'H');
+                    double qE = eval.calculateQobs(ps, ss, 'E');
+                    double qC = eval.calculateQobs(ps, ss, 'C');
+
+                    results.add(new ValidationResult(id, q3, sov, qH, qE, qC));
+                }
+            }
+
+            //output
+            writeDetailedOutput(detailed, results);
+            writeSummaryOutput(summary, results);
+
+            System.out.println("Validation completed successfully.");
+
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private static void writeSummaryOutput(String path, List<ValidationResult> results) throws IOException {
+        if (path == null) return;
+
+        List<Double> q3s = results.stream().map(r -> r.getQ3()).toList();
+        List<Double> sovs = results.stream().map(r -> r.getSov()).toList();
+
+        double meanQ3 = ValidationResult.getMean(q3s);
+        double stdQ3 = ValidationResult.getStdDev(q3s, meanQ3);
+
+        try (PrintWriter pw = new PrintWriter(new FileWriter(path))) {
+            pw.println("Summary Statistics:");
+            pw.printf("Q3:  Mean = %.2f, StdDev = %.2f%n", meanQ3, stdQ3);
+            pw.printf("SOV: Mean = %.2f%n", ValidationResult.getMean(sovs));
+            //TODO mehr?
+        }
+    }
+
+    private static void writeDetailedOutput(String path, List<ValidationResult> results) throws IOException {
+
+    }
+
+    private static Map<String, String> parseFasta(String file) throws IOException {
+        return new HashMap<>();
     }
 
 }
