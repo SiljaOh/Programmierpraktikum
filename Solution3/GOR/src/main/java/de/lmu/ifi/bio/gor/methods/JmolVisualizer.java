@@ -6,7 +6,7 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
 
-public class jMolVisualizer {
+public class JmolVisualizer {
 
 
     public static void writeHtml(String id, String sequence, String realSS, String predictedSS, String outputPath) throws IOException {

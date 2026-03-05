@@ -123,6 +123,8 @@ public class Predict {
             printProbabilities(as, gor);
             System.out.println();
         }
+
+        // JmolVisualizer.show()
     }
 
     private static void printProbabilities(String sequence, GorMethod gor) {
