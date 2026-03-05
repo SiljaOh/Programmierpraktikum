@@ -222,7 +222,7 @@ public abstract class GorMethod {
             char curr = ps[i];
             char next = ps[i + 1];
 
-            //CHC --> CCC
+            //CHC
             if (curr == 'H' && prev == 'C' && next == 'C') {
                 proc[i] = 'C';
             }
@@ -230,6 +230,22 @@ public abstract class GorMethod {
             //CEC --> CCC
             if (curr == 'E' && prev == 'C' && next == 'C') {
                 proc[i] = 'C';
+            }
+
+            if (i < ps.length - 2) {
+                char nextNext = ps[i + 2];
+
+                //CHHC --> CCCC
+                if (prev == 'C' && curr == 'H' && next == 'H' && nextNext == 'C') {
+                    proc[i] = 'C';
+                    proc[i + 1] = 'C';
+                }
+
+                // CEEC -> CCCC
+                if (prev == 'C' && curr == 'E' && next == 'E' && nextNext == 'C') {
+                    proc[i] = 'C';
+                    proc[i + 1] = 'C';
+                }
             }
 
         }
