@@ -93,7 +93,7 @@ public class Predict {
                 for (File alnFile : alnFiles) {
                     Alignment alignment = AlnParser.parseAlignment(alnFile.getPath());
                     if (alignment == null) continue;
-                    String result = gor.predictGor5(alignment);
+                    String result = gor.predictGor5(alignment, probabilities);
                     printResult(alignment.getId(), alignment.getReferenceSeq(), result);
                 }
             }
