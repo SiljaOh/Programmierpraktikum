@@ -1,12 +1,10 @@
 package de.lmu.ifi.bio.gor.cli;
 
-import de.lmu.ifi.bio.gor.methods.Gor1;
-import de.lmu.ifi.bio.gor.methods.Gor3;
-import de.lmu.ifi.bio.gor.methods.Gor4;
-import de.lmu.ifi.bio.gor.methods.GorMethod;
+import de.lmu.ifi.bio.gor.methods.*;
 import de.lmu.ifi.bio.gor.model.Alignment;
 import de.lmu.ifi.bio.gor.model.Protein;
 import de.lmu.ifi.bio.gor.io.AlnParser;
+
 
 import java.io.File;
 import java.io.FilenameFilter;
@@ -15,6 +13,7 @@ import java.util.List;
 
 
 public class Predict {
+
 
     public static void main(String[] args) throws IOException {
 
@@ -46,16 +45,17 @@ public class Predict {
                 //wenn nichts angegeben
                 default:
                     System.err.println("Unknown argument: " + args[i]);
-                    System.err.println("Usage: java -jar predict.jar --model <file> --seq <file> [--format <txt|html>]");
-                    System.err.println("Or:    java -jar predict.jar --model <file> --maf <folder> [--format <txt|html>]");
+                    System.err.println("Usage: java -jar predict.jar [--probabilities]\n" +
+                            "--model <model file> --format <txt|html>\n" +
+                            "{--seq <fasta file>|--maf <multiple-alignment-folder>}");
                     System.exit(1);
             }
         }
         //Pflichtangaben
         if (modelPath == null || (seqPath == null && alnPath == null)) {
-            System.err.println("Usage: java -jar predict.jar --model <file> --seq <file> [--format <txt|html>]");
-            System.err.println("Or:    java -jar predict.jar --model <file> --maf <folder> [--format <txt|html>]");
-            System.exit(1);
+            System.err.println("Usage: java -jar predict.jar [--probabilities]\n" +
+                    "--model <model file> --format <txt|html>\n" +
+                    "{--seq <fasta file>|--maf <multiple-alignment-folder>}");            System.exit(1);
         }
 
         String methodType = GorMethod.whichMethod(modelPath);
@@ -87,7 +87,13 @@ public class Predict {
                 //BONUS postprocessing
                 String processedresult = gor.postProcess(result);
 
+                //validation für mehrere sequenzen/proteine usw und dann anzeigen
+//                JmolVisualizer.addProtein(p.getId(), p.getSequence(), "", processedresult);
+//                JmolVisualizer.showAll();
+
                 printResult(p.getId(), p.getSequence(), processedresult, probabilities, gor);
+
+
             }
         } else {
             File mafDir = new File(alnPath);
@@ -97,7 +103,7 @@ public class Predict {
                     return name.endsWith(".aln");
                 }
             });
-            //jetzt alle fies da drin
+            //jetzt alle files die da drin
             if (alnFiles != null) {
                 for (File alnFile : alnFiles) {
                     //jede file inein pbjekt mit parser
@@ -107,6 +113,10 @@ public class Predict {
 
                     //BONUS postprocessing
                     String processedresult = gor.postProcess(result);
+
+//                    String realSS = alignment.getReferenceSS();
+//                    JmolVisualizer.addProtein(alignment.getId(), alignment.getReferenceSeq(), realSS, processedresult);
+//                    JmolVisualizer.showAll();
 
                     printResult(alignment.getId(), alignment.getReferenceSeq(), processedresult, probabilities, gor);
                 }
