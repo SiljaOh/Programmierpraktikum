@@ -76,6 +76,7 @@ public class Predict {
         gor.getMatrix().loadModel(modelPath);
         //Bonus probs
         gor.setUseProbability(probabilities);
+        gor.getMatrix().setUseProbability(probabilities);
 
         //entweder --seq oder --maf
         if (seqPath != null) {
@@ -131,8 +132,9 @@ public class Predict {
         System.out.println("PS " + ps);
         if (probabilities) {
             printProbabilities(as, gor);
-            System.out.println();
         }
+        System.out.println();
+
     }
 
     private static void printProbabilities(String sequence, GorMethod gor) {
@@ -149,7 +151,8 @@ public class Predict {
                 //alle werte
                 double sum = exp[0] + exp[1] + exp[2];
                 // P(S|a) = exp(score_s) / summe, mal 10 und auf ganze zahl runden → 0-9
-                sb.append((int)(exp[s] / sum * 10));
+                //runden!
+                sb.append((int) Math.round(exp[s] / sum * 10));
             }
             sb.append("--------");
             System.out.println(sb);
