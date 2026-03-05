@@ -95,6 +95,7 @@ public abstract class GorMethod {
         return sb.toString();
     }
     public abstract void handleWindow(String window, int position, char target, boolean isTraining, StringBuilder result);
+
     protected String slidingWindow(Protein protein, boolean isTraining) {
         String sequence = protein.getSequence();
         String structure = protein.getStructure();
@@ -208,7 +209,7 @@ public abstract class GorMethod {
         return result.toString();
     }
 
-    //BONUS: postprocessign TODO
+
     //BONUS: postprocessign
     public String postProcess(String prediction) {
         if (prediction == null || prediction.length() < 3) return prediction;
