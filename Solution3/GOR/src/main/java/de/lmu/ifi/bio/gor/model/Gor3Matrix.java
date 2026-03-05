@@ -170,7 +170,14 @@ public class Gor3Matrix extends GorMatrix {
             for (int p = 0; p < 17; p++) {
                 int aaIdx = getAaIndex(window.charAt(p));
                 if (aaIdx == -1) continue;
-                totals[s] += scores3[s][p][centerAS][aaIdx];
+                //bonus
+                if (this.useProbability) {
+                    //totalAA von parent
+                    double pS = (double) totalCountsPerState3[s] / totalAA;
+                    totals[s] += Math.exp(scores3[s][p][centerAS][aaIdx]) * pS;
+                } else {
+                    totals[s] += scores3[s][p][centerAS][aaIdx];
+                }
             }
         }
         return totals;

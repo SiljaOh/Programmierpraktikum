@@ -16,6 +16,12 @@ public class GorMatrix {
 
     private static final String AMINO_ACIDS = "ACDEFGHIKLMNPQRSTVWY";
 
+    protected boolean useProbability = false;
+
+    public void setUseProbability(boolean useProbability) {
+        this.useProbability = useProbability;
+    }
+
     public int getAaIndex(char aa) {
         return AMINO_ACIDS.indexOf(aa);
     }
@@ -81,27 +87,6 @@ public class GorMatrix {
         pw.close();
     }
 
-    //train und predict
-    public void calculateTotalsFromCounts() {
-        //Wahrscheinlichkeit für Helix = totalCountsperState[0]/totalAA
-        //für jeden state wie oft AS, für P(S)
-        totalCountsperState = new int[3];
-        //alle AS die ma nim zentrum sieht
-        totalAA = 0;
-        for (int s = 0; s < 3; s++) {
-            for (int p = 0; p < 17; p++) {
-                for (int a = 0; a < 20; a++) {
-                    // Nur im Zentrum AS
-                    if (p == 8) {
-                        //wie oft as  an posi 8 wenn zustand s
-                        totalCountsperState[s] += counts[s][p][a];
-                        //wert egal welcher zustand addiert
-                        totalAA += counts[s][p][a];
-                    }
-                }
-            }
-        }
-    }
 
     //predict
     // hier zeilen AS und spalten window
@@ -139,6 +124,28 @@ public class GorMatrix {
         }
         calculateTotalsFromCounts();
         calculateScores();
+    }
+
+    //predict
+    public void calculateTotalsFromCounts() {
+        //Wahrscheinlichkeit für Helix = totalCountsperState[0]/totalAA
+        //für jeden state wie oft AS, für P(S)
+        totalCountsperState = new int[3];
+        //alle AS die ma nim zentrum sieht
+        totalAA = 0;
+        for (int s = 0; s < 3; s++) {
+            for (int p = 0; p < 17; p++) {
+                for (int a = 0; a < 20; a++) {
+                    // Nur im Zentrum AS
+                    if (p == 8) {
+                        //wie oft as  an posi 8 wenn zustand s
+                        totalCountsperState[s] += counts[s][p][a];
+                        //wert egal welcher zustand addiert
+                        totalAA += counts[s][p][a];
+                    }
+                }
+            }
+        }
     }
 
     public void calculateScores() {
@@ -188,7 +195,13 @@ public class GorMatrix {
                 char aa = window.charAt(p);
                 int aaIdx = getAaIndex(aa);
                 if (aaIdx == -1) continue;
-                totals[s] += scores[s][p][aaIdx];
+
+                if (useProbability) {
+                    double pS = (double) totalCountsperState[s] / totalAA;
+                    totals[s] += Math.exp(scores[s][p][aaIdx]) * pS;
+                } else {
+                    totals[s] += scores[s][p][aaIdx];
+                }
             }
         }
         return totals;

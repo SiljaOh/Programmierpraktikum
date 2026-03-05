@@ -71,7 +71,11 @@ public class Predict {
             default:
                 gor = new Gor1();
         }
+
+
         gor.getMatrix().loadModel(modelPath);
+        //Bonus probs
+        gor.setUseProbability(probabilities);
 
         //entweder --seq oder --maf
         if (seqPath != null) {
