@@ -41,7 +41,7 @@ public class Gor1 extends GorMethod{
     //Gor5:
     @Override
     protected double[] calculateRawScores(String window) {
-        return this.matrix.getBestStateGorV(window);
+        return this.matrix.getBestStateGorV(window, false);
     }
 
 }

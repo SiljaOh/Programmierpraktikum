@@ -19,6 +19,7 @@ public class GorMatrix {
     public int getAaIndex(char aa) {
         return AMINO_ACIDS.indexOf(aa);
     }
+
     //train
     // Hilfsmethode um 3 Zahlen in Matrix den 3 Zuständen zuzuordnen
     //zb. H ist Index 0 in Matrix
@@ -29,9 +30,10 @@ public class GorMatrix {
             default -> 2; //Alles andere ist Coil
         };
     }
+
     //train
     //Matrix befüllen
-    public void addCount(char state, int windowPos, char aa){
+    public void addCount(char state, int windowPos, char aa) {
         int stateIndex = getStateIndex(state);
         int aaIndex = getAaIndex(aa);
 
@@ -42,11 +44,12 @@ public class GorMatrix {
         counts[stateIndex][windowPos][aaIndex]++;
 
         //windowPos muss 8 sein sonst zählen wir zu oft
-        if(windowPos == 8){
+        if (windowPos == 8) {
             totalCountsperState[stateIndex]++;
             totalAA++;
         }
     }
+
     //train
     public void save(String path) throws IOException {
         PrintWriter pw = new PrintWriter(new FileWriter(path));
@@ -77,6 +80,7 @@ public class GorMatrix {
         }
         pw.close();
     }
+
     //train und predict
     public void calculateTotalsFromCounts() {
         //Wahrscheinlichkeit für Helix = totalCountsperState[0]/totalAA
@@ -98,6 +102,7 @@ public class GorMatrix {
             }
         }
     }
+
     //predict
     // hier zeilen AS und spalten window
     public void loadModel(String filePath) throws IOException {
@@ -150,11 +155,11 @@ public class GorMatrix {
 
                     //1. Teil Formel
                     //wie oft as a an posi p wenn  zustand s
-                    double fSA    = counts[s][p][a];
+                    double fSA = counts[s][p][a];
                     //wie oft a an p wenn nicht zustand
                     double f_SA = 0;
                     for (int o = 0; o < 3; o++) {
-                        if (o != s){
+                        if (o != s) {
                             f_SA += counts[o][p][a];
                         }
                     }
@@ -165,6 +170,7 @@ public class GorMatrix {
             }
         }
     }
+
     //predict, fast identisch
     public char getBestState(String window) {
         double[] totals = getBestStateGorV(window);
@@ -172,10 +178,11 @@ public class GorMatrix {
         if (totals[1] >= totals[0] && totals[1] >= totals[2]) return 'E';
         return 'C';
     }
-    //für Gor5:
 
-    public double[] getBestStateGorV(String window) {
+    //für Gor5:
+    public double[] getBestStateGorV(String window, boolean probabilities) {
         double[] totals = new double[3];
+
         for (int s = 0; s < 3; s++) {
             for (int p = 0; p < 17; p++) {
                 char aa = window.charAt(p);
@@ -184,6 +191,21 @@ public class GorMatrix {
                 totals[s] += scores[s][p][aaIdx];
             }
         }
+
+        //BONUS: für gor1 und gor3 auch die Wahrscheinlichkeit ausgegeben bei flag --probabilities
+        //Umrechnung von I in P mit Math.exp
+        if (probabilities) {
+            double[] probs = new double[3];
+            double sum = 0;
+            for (int s = 0; s < 3; s++) {
+                probs[s] = Math.exp(totals[s]);
+                sum += probs[s];
+            }
+            //Normalisierung
+            for (int s = 0; s < 3; s++) probs[s] /= sum;
+            return probs;
+        }
+
         //gib array [ScoreH,ScoreE,ScoreC]
         return totals;
     }
