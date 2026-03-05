@@ -221,7 +221,7 @@ public abstract class GorMethod {
             char curr = ps[i];
             char next = ps[i + 1];
 
-            //CHC --> CCC
+            //CHC
             if (curr == 'H' && prev == 'C' && next == 'C') {
                 proc[i] = 'C';
             }
