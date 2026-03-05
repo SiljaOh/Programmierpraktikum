@@ -131,6 +131,7 @@ public abstract class GorMethod {
     }
 
     protected abstract double[] calculateRawScores(String window);
+
     public double[][] getScores(String sequence) {
         int len = sequence.length();
         double[][] scores = new double[len][3];
@@ -208,7 +209,29 @@ public abstract class GorMethod {
     }
 
     //BONUS: postprocessign TODO
-    public String postProcess(String prediction){
-        return prediction;
+    //BONUS: postprocessign
+    public String postProcess(String prediction) {
+        if (prediction == null || prediction.length() < 3) return prediction;
+
+        char[] ps = prediction.toCharArray();
+        char[] proc = ps.clone();
+
+        for (int i = 1; i < ps.length - 1; i++) {
+            char prev = ps[i - 1];
+            char curr = ps[i];
+            char next = ps[i + 1];
+
+            //CHC --> CCC
+            if (curr == 'H' && prev == 'C' && next == 'C') {
+                proc[i] = 'C';
+            }
+
+            //CEC --> CCC
+            if (curr == 'E' && prev == 'C' && next == 'C') {
+                proc[i] = 'C';
+            }
+
+        }
+        return new String(proc);
     }
 }
