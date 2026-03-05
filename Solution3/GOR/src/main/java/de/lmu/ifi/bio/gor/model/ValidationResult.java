@@ -20,6 +20,14 @@ public class ValidationResult {
       this.qC = qC;
    }
 
+   public double getQ3() { return q3; }
+   public double getSov() { return sov; }
+   public double getQH() { return qH; }
+   public double getQE() { return qE; }
+   public double getQC() { return qC; }
+   public String getId() { return id; }
+
+
    //Mean
    public static double getMean(List<Double> values) {
       return values.stream().mapToDouble(d -> d).average().orElse(0.0);
