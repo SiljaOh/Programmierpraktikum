@@ -12,7 +12,6 @@ import java.util.List;
 public abstract class GorMethod {
 
     protected GorMatrix matrix;
-
     public GorMatrix getMatrix() {
         return this.matrix;
     }
@@ -57,7 +56,6 @@ public abstract class GorMethod {
         }
         return proteins;
     }
-
     public static String whichMethod(String modelPath) throws IOException {
         // Header um Methode zu bestimmen
         try (BufferedReader reader = new BufferedReader(new FileReader(modelPath))) {
@@ -85,7 +83,6 @@ public abstract class GorMethod {
     }
 
     public abstract void train(List<Protein> data);
-
     public abstract String predict(String sequence);
 
     private String getPaddedWindow(String seq, int center) {
@@ -97,9 +94,7 @@ public abstract class GorMethod {
         }
         return sb.toString();
     }
-
     public abstract void handleWindow(String window, int position, char target, boolean isTraining, StringBuilder result);
-
     protected String slidingWindow(Protein protein, boolean isTraining) {
         String sequence = protein.getSequence();
         String structure = protein.getStructure();
@@ -187,8 +182,7 @@ public abstract class GorMethod {
                 //haupt seq zählen
                 if (querySeq.charAt(i) == '-') {
                     seqPos++;
-                    continue;
-                }
+                    continue; }
 
                 //Score dieser Sequenz an dieser Position zur Summe addieren
                 sumH[i] += readySeq[seqPos][0];
@@ -205,13 +199,16 @@ public abstract class GorMethod {
             //für jede posi in sequenz höchster score
             if (sumH[i] >= sumE[i] && sumH[i] >= sumC[i]) {
                 result.append('H');
-            } else if (sumE[i] >= sumH[i] && sumE[i] >= sumC[i]) {
+            }
+            else if (sumE[i] >= sumH[i] && sumE[i] >= sumC[i]) {
                 result.append('E');
-            } else result.append('C');
+            }
+            else result.append('C');
         }
         return result.toString();
     }
 
+    //BONUS: postprocessign TODO
     //BONUS: postprocessign
     public String postProcess(String prediction) {
         if (prediction == null || prediction.length() < 3) return prediction;
@@ -237,6 +234,4 @@ public abstract class GorMethod {
         }
         return new String(proc);
     }
-
 }
-

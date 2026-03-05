@@ -93,8 +93,10 @@ public class Predict {
                     return name.endsWith(".aln");
                 }
             });
+            //jetzt alle fies da drin
             if (alnFiles != null) {
                 for (File alnFile : alnFiles) {
+                    //jede file inein pbjekt mit parser
                     Alignment alignment = AlnParser.parseAlignment(alnFile.getPath());
                     if (alignment == null) continue;
                     String result = gor.predictGor5(alignment);
@@ -112,7 +114,7 @@ public class Predict {
     private static void printResult(String id, String as, String ps, boolean probabilities, GorMethod gor) {
         System.out.println("> " + id);
         System.out.println("AS " + as);
-        System.out.println("PS " + ps + "\n");
+        System.out.println("PS " + ps);
         if (probabilities) {
             printProbabilities(as, gor);
             System.out.println();
