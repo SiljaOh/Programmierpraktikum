@@ -93,8 +93,10 @@ public class Predict {
                     return name.endsWith(".aln");
                 }
             });
+            //jetzt alle fies da drin
             if (alnFiles != null) {
                 for (File alnFile : alnFiles) {
+                    //jede file inein pbjekt mit parser
                     Alignment alignment = AlnParser.parseAlignment(alnFile.getPath());
                     if (alignment == null) continue;
                     String result = gor.predictGor5(alignment);
