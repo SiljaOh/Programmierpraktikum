@@ -79,7 +79,11 @@ public class Predict {
             for (Protein p : proteins) {
                 if (p.getSequence().length() < 17) continue;
                 String result = gor.predict(p.getSequence());
-                printResult(p.getId(), p.getSequence(), result, probabilities, gor);
+
+                //BONUS postprocessing
+                String processedresult = gor.postProcess(result);
+
+                printResult(p.getId(), p.getSequence(), processedresult, probabilities, gor);
             }
         } else {
             File mafDir = new File(alnPath);
@@ -94,7 +98,11 @@ public class Predict {
                     Alignment alignment = AlnParser.parseAlignment(alnFile.getPath());
                     if (alignment == null) continue;
                     String result = gor.predictGor5(alignment);
-                    printResult(alignment.getId(), alignment.getReferenceSeq(), result, probabilities, gor);
+
+                    //BONUS postprocessing
+                    String processedresult = gor.postProcess(result);
+
+                    printResult(alignment.getId(), alignment.getReferenceSeq(), processedresult, probabilities, gor);
                 }
             }
         }

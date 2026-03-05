@@ -16,6 +16,13 @@ public abstract class GorMethod {
         return this.matrix;
     }
 
+    boolean useProbabilities = false;
+
+    //BONUS
+    public void setUseProbabilities(boolean useProbabilities) {
+        this.useProbabilities = useProbabilities;
+    }
+
     public static List<Protein> readFasta(String filePath) throws IOException {
         List<Protein> proteins = new ArrayList<Protein>();
         String id = null;
@@ -200,5 +207,8 @@ public abstract class GorMethod {
         return result.toString();
     }
 
-
+    //BONUS: postprocessign TODO
+    public String postProcess(String prediction){
+        return prediction;
+    }
 }
