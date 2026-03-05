@@ -195,10 +195,9 @@ public class GorMatrix {
                 char aa = window.charAt(p);
                 int aaIdx = getAaIndex(aa);
                 if (aaIdx == -1) continue;
-
                 if (useProbability) {
-                    double pS = (double) totalCountsperState[s] / totalAA;
-                    totals[s] += Math.exp(scores[s][p][aaIdx]) * pS;
+                    double iScore = scores[s][p][aaIdx];
+                    totals[s] += Math.exp(iScore) / (1.0 + Math.exp(iScore));
                 } else {
                     totals[s] += scores[s][p][aaIdx];
                 }

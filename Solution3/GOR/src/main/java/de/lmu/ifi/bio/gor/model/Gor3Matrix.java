@@ -161,20 +161,16 @@ public class Gor3Matrix extends GorMatrix {
     @Override
     public double[] getBestStateGorV(String window) {
         int centerAS = getAaIndex(window.charAt(8));
-        //unbekannt im zentrum
         if (centerAS == -1) centerAS = 0;
-        //ein gesamtscore pro zustnd
         double[] totals = new double[3];
 
         for (int s = 0; s < 3; s++) {
             for (int p = 0; p < 17; p++) {
                 int aaIdx = getAaIndex(window.charAt(p));
                 if (aaIdx == -1) continue;
-                //bonus
-                if (this.useProbability) {
-                    //totalAA von parent
-                    double pS = (double) totalCountsPerState3[s] / totalAA;
-                    totals[s] += Math.exp(scores3[s][p][centerAS][aaIdx]) * pS;
+                if (useProbability) {
+                    double iScore = scores3[s][p][centerAS][aaIdx];
+                    totals[s] += Math.exp(iScore) / (1.0 + Math.exp(iScore));
                 } else {
                     totals[s] += scores3[s][p][centerAS][aaIdx];
                 }
