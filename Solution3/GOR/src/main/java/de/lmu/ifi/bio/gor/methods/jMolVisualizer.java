@@ -1,5 +1,7 @@
 package de.lmu.ifi.bio.gor.methods;
 
+import java.awt.*;
+import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
@@ -75,6 +77,10 @@ public class jMolVisualizer {
         pw.println("</script></body></html>");
 
         pw.close();
+
+        //öffnen
+        // nach pw.close():
+        Desktop.getDesktop().browse(new File(outputPath).toURI());
 
 
     }
