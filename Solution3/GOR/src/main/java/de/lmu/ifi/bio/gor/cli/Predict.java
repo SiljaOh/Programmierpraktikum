@@ -123,11 +123,16 @@ public class Predict {
         double[][] raw = gor.getScores(sequence);
         String[] labels = {"PH", "PE", "PC"};
         int m = 8;
+        //jeder zustand
         for (int s = 0; s < 3; s++) {
             StringBuilder sb = new StringBuilder(labels[s] + " --------");
+            //ohne ränder
             for (int i = m; i < raw.length - m; i++) {
+                //softmax auf alle 3 scores -> 0-1 wslk aus log odds wert, alle pos
                 double[] exp = {Math.exp(raw[i][0]), Math.exp(raw[i][1]), Math.exp(raw[i][2])};
+                //alle werte
                 double sum = exp[0] + exp[1] + exp[2];
+                // P(S|a) = exp(score_s) / summe, mal 10 und auf ganze zahl runden → 0-9
                 sb.append((int)(exp[s] / sum * 10));
             }
             sb.append("--------");
