@@ -48,8 +48,8 @@ public class validateGor {
 
         try {
             //parse fasta
-            Map<String, String> predictions = parseFasta(predictionFile);
-            Map<String, String> references = parseFasta(seclibFile);
+            Map<String, String[]> predictions = parseValidationFasta(predictionFile);
+            Map<String, String[]> references = parseValidationFasta(seclibFile);
 
             Evaluator eval = new Evaluator();
             List<ValidationResult> results = new ArrayList<>();
@@ -57,8 +57,13 @@ public class validateGor {
             //berechnung von q3,sov,qh,qe,qc für jedes protein
             for (String id : predictions.keySet()) {
                 if (references.containsKey(id)) {
-                    String ps = predictions.get(id);
-                    String ss = references.get(id);
+
+                    String[] predData = predictions.get(id);
+                    String[] refData = references.get(id);
+
+                    String as = predData[0];
+                    String ps = predData[1];
+                    String ss = refData[1];
 
                     double q3 = eval.calculateQ3(ps, ss);
                     double sov = eval.calculateSOV(ps, ss);
@@ -66,7 +71,7 @@ public class validateGor {
                     double qE = eval.calculateQobs(ps, ss, 'E');
                     double qC = eval.calculateQobs(ps, ss, 'C');
 
-                    results.add(new ValidationResult(id, q3, sov, qH, qE, qC));
+                    results.add(new ValidationResult(id, q3, sov, qH, qE, qC, as, ps ,ss));
                 }
             }
 
@@ -74,7 +79,7 @@ public class validateGor {
             writeDetailedOutput(detailed, results);
             writeSummaryOutput(summary, results);
 
-            System.out.println("Validation completed successfully.");
+            System.out.println("Validation completed");
 
         } catch (IOException e) {
             e.printStackTrace();
@@ -94,16 +99,42 @@ public class validateGor {
             pw.println("Summary Statistics:");
             pw.printf("Q3:  Mean = %.2f, StdDev = %.2f%n", meanQ3, stdQ3);
             pw.printf("SOV: Mean = %.2f%n", ValidationResult.getMean(sovs));
-            //TODO mehr?
+            printMetricLine(pw, "qH", results.stream().map(ValidationResult::getQH).toList());
+            printMetricLine(pw, "qE", results.stream().map(ValidationResult::getQE).toList());
+            printMetricLine(pw, "qC", results.stream().map(ValidationResult::getQC).toList());
         }
     }
 
     private static void writeDetailedOutput(String path, List<ValidationResult> results) throws IOException {
-
+        //TODO
     }
 
-    private static Map<String, String> parseFasta(String file) throws IOException {
-        return new HashMap<>();
+    //TODO
+    private static Map<String, String[]> parseValidationFasta(String file) throws IOException {
+        Map<String, String[]> map = new HashMap<>();
+        try (BufferedReader br = new BufferedReader(new FileReader(file))) {
+            String line;
+            while ((line = br.readLine()) != null) {
+                if (line.startsWith(">")) {
+
+                    String id = line.substring(1).split("\\s+")[0];
+
+                    String as = br.readLine(); // Aminosäuresequenz
+                    String str = br.readLine(); // Struktur PS oder SS
+
+                    if (id != null && as != null && str != null) {
+                        //array: [0]=AS, [1]=Struktur
+                        map.put(id, new String[]{as.trim(), str.trim()});
+                    }
+                }
+            }
+        }
+        return map;
+    }
+    private static void printMetricLine(PrintWriter pw, String name, List<Double> values) {
+        double mean = ValidationResult.getMean(values);
+        double std = ValidationResult.getStdDev(values, mean);
+        pw.printf(Locale.US, "%-4s: Mean = %6.2f, StdDev = %6.2f%n", name, mean, std);
     }
 
 }
