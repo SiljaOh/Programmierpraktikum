@@ -64,3 +64,4 @@ public class Gor4 extends GorMethod {
         return this.matrix.getBestStateGorV(window);
     }
 }
+
