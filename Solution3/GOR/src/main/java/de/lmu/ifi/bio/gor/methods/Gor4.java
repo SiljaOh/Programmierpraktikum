@@ -60,7 +60,7 @@ public class Gor4 extends GorMethod {
 
     //Gor5:
     @Override
-    protected double[] calculateRawScores(String window, boolean probabilities) {
-        return this.matrix.getBestStateGorV(window, probabilities);
+    protected double[] calculateRawScores(String window) {
+        return this.matrix.getBestStateGorV(window);
     }
 }

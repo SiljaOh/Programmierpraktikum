@@ -172,15 +172,15 @@ public class GorMatrix {
     }
 
     //predict, fast identisch
-    public char getBestState(String window, boolean probabilities) {
-        double[] totals = getBestStateGorV(window, probabilities );
+    public char getBestState(String window) {
+        double[] totals = getBestStateGorV(window);
         if (totals[0] >= totals[1] && totals[0] >= totals[2]) return 'H';
         if (totals[1] >= totals[0] && totals[1] >= totals[2]) return 'E';
         return 'C';
     }
 
     //für Gor5:
-    public double[] getBestStateGorV(String window, boolean probabilities) {
+    public double[] getBestStateGorV(String window) {
         double[] totals = new double[3];
 
         for (int s = 0; s < 3; s++) {
@@ -191,22 +191,6 @@ public class GorMatrix {
                 totals[s] += scores[s][p][aaIdx];
             }
         }
-
-        //BONUS: für gor1 und gor3 auch die Wahrscheinlichkeit ausgegeben bei flag --probabilities
-        //Umrechnung von I in P mit Math.exp
-        if (probabilities) {
-            double[] probs = new double[3];
-            double sum = 0;
-            for (int s = 0; s < 3; s++) {
-                probs[s] = Math.exp(totals[s]);
-                sum += probs[s];
-            }
-            //Normalisierung
-            for (int s = 0; s < 3; s++) probs[s] /= sum;
-            return probs;
-        }
-
-        //gib array [ScoreH,ScoreE,ScoreC]
         return totals;
     }
 

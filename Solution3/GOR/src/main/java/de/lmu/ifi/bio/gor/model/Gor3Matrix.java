@@ -151,15 +151,15 @@ public class Gor3Matrix extends GorMatrix {
     }
 
     //wieder fast identisch
-    public char getBestState3(String window, boolean probabilities) {
-        double[] totals = getBestStateGorV(window, probabilities);
+    public char getBestState3(String window) {
+        double[] totals = getBestStateGorV(window);
         if (totals[0] >= totals[1] && totals[0] >= totals[2]) return 'H';
         if (totals[1] >= totals[0] && totals[1] >= totals[2]) return 'E';
         return 'C';
     }
 
     @Override
-    public double[] getBestStateGorV(String window, boolean probabilities) {
+    public double[] getBestStateGorV(String window) {
         int centerAS = getAaIndex(window.charAt(8));
         //unbekannt im zentrum
         if (centerAS == -1) centerAS = 0;
@@ -173,24 +173,6 @@ public class Gor3Matrix extends GorMatrix {
                 totals[s] += scores3[s][p][centerAS][aaIdx];
             }
         }
-        //BONUS für gor1 und gor3 auch die Wahrscheinlichkeit ausgegeben bei flag --probabilities
-        //Umrechnung von I in P mit Math.exp
-        if (probabilities) {
-            double[] probs = new double[3];
-            double sum = 0;
-            for (int s = 0; s < 3; s++) {
-                probs[s] = Math.exp(totals[s]);
-                sum += probs[s];
-            }
-            for (int s = 0; s < 3; s++) {
-                probs[s] /= sum;
-            }
-            return probs;
-        }
-
-
-
-
         return totals;
     }
 }

@@ -79,7 +79,7 @@ public class Predict {
             for (Protein p : proteins) {
                 if (p.getSequence().length() < 17) continue;
                 String result = gor.predict(p.getSequence());
-                printResult(p.getId(), p.getSequence(), result);
+                printResult(p.getId(), p.getSequence(), result, probabilities, gor);
             }
         } else {
             File mafDir = new File(alnPath);
@@ -93,20 +93,37 @@ public class Predict {
                 for (File alnFile : alnFiles) {
                     Alignment alignment = AlnParser.parseAlignment(alnFile.getPath());
                     if (alignment == null) continue;
-                    String result = gor.predictGor5(alignment, probabilities);
-                    printResult(alignment.getId(), alignment.getReferenceSeq(), result);
+                    String result = gor.predictGor5(alignment);
+                    printResult(alignment.getId(), alignment.getReferenceSeq(), result, probabilities, gor);
                 }
             }
         }
     }
 
     //output funktion
-    private static void printResult(String id, String as, String ps) {
+    private static void printResult(String id, String as, String ps, boolean probabilities, GorMethod gor) {
         System.out.println("> " + id);
         System.out.println("AS " + as);
         System.out.println("PS " + ps + "\n");
+        if (probabilities) {
+            printProbabilities(as, gor);
+            System.out.println();
+        }
     }
 
+    private static void printProbabilities(String sequence, GorMethod gor) {
+        double[][] raw = gor.getScores(sequence);
+        String[] labels = {"P(H)", "P(E)", "P(C)"};
+        for (int s = 0; s < 3; s++) {
+            StringBuilder sb = new StringBuilder(labels[s] + " ");
+            for (double[] pos : raw) {
+                double[] exp = {Math.exp(pos[0]), Math.exp(pos[1]), Math.exp(pos[2])};
+                double sum = exp[0] + exp[1] + exp[2];
+                sb.append(String.format("%.2f ", exp[s] / sum));
+            }
+            System.out.println(sb);
+        }
+    }
 }
 
 

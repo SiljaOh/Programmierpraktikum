@@ -123,8 +123,8 @@ public abstract class GorMethod {
         return result.toString();
     }
 
-    protected abstract double[] calculateRawScores(String window, boolean probabilities);
-    protected double[][] getScores(String sequence, boolean probabilities) {
+    protected abstract double[] calculateRawScores(String window);
+    public double[][] getScores(String sequence) {
         int len = sequence.length();
         double[][] scores = new double[len][3];
         int m = 8;
@@ -133,7 +133,7 @@ public abstract class GorMethod {
 
             String window = getPaddedWindow(sequence, i);
 
-            double[] p = calculateRawScores(window,probabilities);
+            double[] p = calculateRawScores(window);
             scores[i][0] = p[0]; // Score für H
             scores[i][1] = p[1]; // Score für E
             scores[i][2] = p[2]; // Score für C
@@ -142,7 +142,7 @@ public abstract class GorMethod {
     }
 
     //GOR 5
-    public String predictGor5(Alignment alignment, boolean probabilities) {
+    public String predictGor5(Alignment alignment) {
         String querySeq = alignment.getReferenceSeq();
         //länge mit gaps
         int queryLen = querySeq.length();
@@ -162,7 +162,7 @@ public abstract class GorMethod {
             if (seqWithoutGaps.length() < 17) continue;
             //[position][0/1/2]  hier score
             //für jede Position der gap-freien Sequenz drei Scores.
-            double[][] readySeq = getScores(seqWithoutGaps, probabilities);
+            double[][] readySeq = getScores(seqWithoutGaps);
 
             //wie posi ohne gaps
             //seq:       H  P  -  T  F  -  N  K
