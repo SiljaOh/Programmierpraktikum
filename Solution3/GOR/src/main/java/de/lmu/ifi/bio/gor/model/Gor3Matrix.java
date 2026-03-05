@@ -151,8 +151,8 @@ public class Gor3Matrix extends GorMatrix {
     }
 
     //wieder fast identisch
-    public char getBestState3(String window) {
-        double[] totals = getBestStateGorV(window, false);
+    public char getBestState3(String window, boolean probabilities) {
+        double[] totals = getBestStateGorV(window, probabilities);
         if (totals[0] >= totals[1] && totals[0] >= totals[2]) return 'H';
         if (totals[1] >= totals[0] && totals[1] >= totals[2]) return 'E';
         return 'C';
