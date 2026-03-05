@@ -235,7 +235,6 @@ public class Gor4Matrix extends Gor3Matrix {
     }
 
     // predict, fast wie gor5 best state
-    //ignore boolean probabilities
     public char getBestState4(String window) {
         double[] totals = getBestStateGorV(window);
         if (totals[0] >= totals[1] && totals[0] >= totals[2]) return 'H';
