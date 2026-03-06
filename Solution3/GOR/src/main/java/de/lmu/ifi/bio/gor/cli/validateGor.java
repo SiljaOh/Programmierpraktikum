@@ -107,16 +107,22 @@ public class validateGor {
     //
     //Tabelle mit allen metrics: q3,qObs_H, qObs_E, qObs_C, SOV, SOV_H, SOV_E, SOV_C
     //und für jede Metric: Mean, Dev, Min, Max, Median, Quantil_25, Quantil_75, Quantil_5, Quantil_95
-    private static void writeSummaryOutput(String path, List<ValidationResult> results) throws IOException {
+    private static void writeSummaryOutput(String path, List<ValidationResult> Nresults) throws IOException {
         if (path == null) return;
 
         try (PrintWriter pw = new PrintWriter(new FileWriter(path))) {
+
+            // NEU: nur Proteine mit validen Q3-Werten
+            List<ValidationResult> results = Nresults.stream()
+                    .filter(r -> r.getQ3() >= 0)
+                    .toList();
+
             pw.println("Statistic for protein validation");
             pw.println();
             pw.println("Number of Proteins:           " + results.size());
 
             //mean , sum protein length
-            List<Double> lengths = results.stream().map(r -> (double) r.getSequence().length()).toList();
+            List<Double> lengths = results.stream().map(r -> (double) r.getReference().length()).toList();
             double sumLength = lengths.stream().mapToDouble(Double::doubleValue).sum();
             pw.printf(Locale.US, "Mean Protein Length:          %.1f%n", ValidationResult.getMean(lengths));
             pw.printf(Locale.US, "Sum of Protein Length:        %.0f%n", sumLength);
@@ -168,10 +174,15 @@ public class validateGor {
     //PS --------HHHHHHHHHEEEEECCCCCC--------
     //SS CHHHHHCHHHHHHHHHEEEEECCEEEECCCHHHH
 
-    private static void writeDetailedOutput(String path, List<ValidationResult> results) throws IOException {
+    private static void writeDetailedOutput(String path, List<ValidationResult> nresults) throws IOException {
         if (path == null) return;
 
         try  (PrintWriter pw = new PrintWriter(new FileWriter(path))) {
+
+            List<ValidationResult> results = nresults.stream()
+                    .filter(r -> r.getQ3() >= 0)
+                    .toList();
+
             for (ValidationResult r : results) {
                 //head >id Q3 SOV QH QE QC SOV_H SOV_E SOV_C
                 pw.printf(Locale.US, "> %-10s %s %s %s %s %s %s %s %s%n",
