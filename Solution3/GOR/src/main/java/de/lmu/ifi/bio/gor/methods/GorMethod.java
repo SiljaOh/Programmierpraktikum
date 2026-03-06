@@ -220,13 +220,11 @@ public abstract class GorMethod {
         // 1 mal vor 1 mal nach c korrektur
         for (int pass = 0; pass < 2; pass++) {
 
-            // einzelnes C zwischen gleichen Nachbarn korrigieren
+            // einzelnes C zwischen gleichen Nachbarn korrigieren, erst nach einer runde H E
             // z.B. HHHCHHH -> HHHHHHH, aber HHHCEEE bleibt
             if (pass == 1) {
                 for (int i = 1; i < n - 1; i++) {
-                    if (processed[i] == 'C'
-                            && processed[i - 1] == processed[i + 1]
-                            && processed[i - 1] != 'C') {
+                    if (processed[i] == 'C' && processed[i - 1] == processed[i + 1] && processed[i - 1] != 'C') {
                         processed[i] = processed[i - 1];
                     }
                 }
@@ -249,7 +247,7 @@ public abstract class GorMethod {
                     else break;
                 }
 
-                // gesamt window anschauen
+                // gesamt nachbarn anschauen
                 int sameState = left + 1 + right;
 
                 if (current == 'H' && sameState < minH) processed[i] = 'C';
