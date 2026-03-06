@@ -210,45 +210,72 @@ public abstract class GorMethod {
 
 
     //BONUS: postprocess, noch mehr ausprobieren!
-    //noch mehr
+    //mind 4 H, 2 E, C nur zwischne E und H
     public String postProcess(String prediction) {
-        if (prediction == null || prediction.length() < 3) return prediction;
+        int minH = 4;
+        int minE = 2;
+        int n = prediction.length();
+        char[] processed = prediction.toCharArray();
 
-        char[] ps = prediction.toCharArray();
-        char[] proc = ps.clone();
+        // Pass 1: zu kurze H und E segmente zu C
+        for (int i = 0; i < n; i++) {
+            char current = processed[i];
 
-        for (int i = 1; i < ps.length - 1; i++) {
-            char prev = ps[i - 1];
-            char curr = ps[i];
-            char next = ps[i + 1];
-
-            //CHC
-            if (curr == 'H' && prev == 'C' && next == 'C') {
-                proc[i] = 'C';
+            // wv gleiche buchstaben links nebeneinander
+            int left = 0;
+            for (int j = i - 1; j >= 0; j--) {
+                if (processed[j] == current) left++;
+                else break;
             }
 
-            //CEC --> CCC
-            if (curr == 'E' && prev == 'C' && next == 'C') {
-                proc[i] = 'C';
+            // wv gleiche buchstaben rechts nebeneinander
+            int right = 0;
+            for (int j = i + 1; j < n; j++) {
+                if (processed[j] == current) right++;
+                else break;
             }
 
-            if (i < ps.length - 2) {
-                char nextNext = ps[i + 2];
+            // gesamt window anschauen
+            int sameState = left + 1 + right;
 
-                //CHHC --> CCCC
-                if (prev == 'C' && curr == 'H' && next == 'H' && nextNext == 'C') {
-                    proc[i] = 'C';
-                    proc[i + 1] = 'C';
-                }
-
-                // CEEC -> CCCC
-                if (prev == 'C' && curr == 'E' && next == 'E' && nextNext == 'C') {
-                    proc[i] = 'C';
-                    proc[i + 1] = 'C';
-                }
-            }
-
+            if (current == 'H' && sameState < minH) processed[i] = 'C';
+            if (current == 'E' && sameState < minE) processed[i] = 'C';
         }
-        return new String(proc);
+
+        // nächste runde einzelnes C zwischen gleichen Nachbarn korrigieren
+        // HHHCHHH -> HHHHHHH, aber HHHCEEE bleibt
+        for (int i = 1; i < n - 1; i++) {
+            if (processed[i] == 'C'
+                    && processed[i - 1] == processed[i + 1]
+                    && processed[i - 1] != 'C') {
+                processed[i] = processed[i - 1];
+            }
+        }
+
+        // nochmal zu kurze Segmente prüfen die durch Pass 2 entstanden sein könnten
+        for (int i = 0; i < n; i++) {
+            char current = processed[i];
+
+            // wv gleiche buchstaben links nebeneinander
+            int left = 0;
+            for (int j = i - 1; j >= 0; j--) {
+                if (processed[j] == current) left++;
+                else break;
+            }
+
+            // wv gleiche buchstaben rechts nebeneinander
+            int right = 0;
+            for (int j = i + 1; j < n; j++) {
+                if (processed[j] == current) right++;
+                else break;
+            }
+
+            // gesamt window anschauen
+            int sameState = left + 1 + right;
+
+            if (current == 'H' && sameState < minH) processed[i] = 'C';
+            if (current == 'E' && sameState < minE) processed[i] = 'C';
+        }
+        return new String(processed);
     }
 }
