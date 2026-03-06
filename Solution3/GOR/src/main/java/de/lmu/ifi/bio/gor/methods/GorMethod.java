@@ -217,7 +217,7 @@ public abstract class GorMethod {
         int n = prediction.length();
         char[] processed = prediction.toCharArray();
 
-        // Pass 1: zu kurze H und E segmente zu C
+        // 1. durchlauf zu kurze H und E segmente zu C
         for (int i = 0; i < n; i++) {
             char current = processed[i];
 
