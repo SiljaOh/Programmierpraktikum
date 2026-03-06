@@ -15,11 +15,13 @@ public class Evaluator {
 
         int correct = 0;
         for (int i = 0; i < reference.length(); i++) {
-            if (predicition.charAt(i) == reference.charAt(i)) {
-                correct++;
-            }
+            if (predicition.charAt(i) == '-') continue;
+            if (reference.charAt(i) == '-') continue;
+            if (predicition.charAt(i) == reference.charAt(i)) correct++;
         }
-        return (double) correct / (double) reference.length() * 100.0;
+
+        int total = (int) predicition.chars().filter(c -> c != '-').count();
+        return (double) correct / total * 100.0;
     }
 
     //Qobs für qH , qE , qC
@@ -30,6 +32,7 @@ public class Evaluator {
         int totalState = 0; //N
         int correctState = 0;//n
         for (int i = 0; i < reference.length(); i++) {
+            if (prediction.charAt(i) == '-') continue;
             if (reference.charAt(i) == state) {
                 totalState++;
                 if (prediction.charAt(i) == state) {
@@ -121,79 +124,94 @@ public class Evaluator {
     //basierend auf Strukturblöcken --> Segment Objekten!
     public double calculateSOV(String predicition, String reference) {
 
-        List<Segment> preds = getSegments(predicition);
-        List<Segment> refs = getSegments(reference);
+        StringBuilder sbPred = new StringBuilder();
+        StringBuilder sbRef  = new StringBuilder();
+        for (int i = 0; i < predicition.length(); i++) {
+            if (predicition.charAt(i) != '-') {
+                sbPred.append(predicition.charAt(i));
+                sbRef.append(reference.charAt(i));
+            }
+        }
+        String cleanPred = sbPred.toString();
+        String cleanRef  = sbRef.toString();
+        List<Segment> preds = getSegments(cleanPred);
+        List<Segment> refs  = getSegments(cleanRef);
 
         double totalSum = 0;
-        int N = 0; //N(i)
+        int N = 0;
 
         for (char state : new char[]{'H', 'E', 'C'}) {
             List<Segment> s1List = filterByType(refs, state);
             List<Segment> s2List = filterByType(preds, state);
 
             for (Segment s1 : s1List) {
-                //N(i):  Summe der Längen aller Referenz Segmente
-                N += s1.length();
-
+                List<Segment> overlapsOfS1 = new ArrayList<>();
                 for (Segment s2 : s2List) {
-
-                    //suche überlappendes Segment gleichen Zustandes
                     if (isOverlapping(s1, s2)) {
-                        double minov = getMinov(s1, s2);
-                        double maxov = getMaxov(s1, s2);
-                        double delta = getDelta(s1, s2, minov, maxov);
-
-                        //total sum:
-                        totalSum += ((minov + delta) / maxov) * s1.length();
-                        break;
+                        overlapsOfS1.add(s2);
                     }
                 }
-            }
 
-            //N(i): Addiere Längen der Segmente in Pred, die keinen Partner in Ref haben (S')
-            for (Segment s2 : s2List) {
-                if (!hasOverlap(s2, s1List)) {
-                    N += s2.length();
+                if (overlapsOfS1.isEmpty()) {
+                    N += s1.length();
+                } else {
+                    N += s1.length() * overlapsOfS1.size();
                 }
-            }
-        }
 
-        // Endergebnis:(100 / N) * Summe
-        if (N == 0) return -1.0;
-        return (100.0 / N) * totalSum;
-
-    }
-
-    //SOV PER STATE
-    public double calculateStateSOV(String predicition, String reference, char state) {
-        List<Segment> preds = filterByType( getSegments(predicition), state);
-        List<Segment> refs = filterByType( getSegments(reference), state);
-
-        double stateSum = 0;
-        int Nstate = 0; //N(i)
-
-        for (Segment s1 : refs) {
-            Nstate += s1.length();
-            for (Segment s2 : preds) {
-                if (isOverlapping(s1, s2)) {
+                for (Segment s2 : overlapsOfS1) {
                     double minov = getMinov(s1, s2);
                     double maxov = getMaxov(s1, s2);
                     double delta = getDelta(s1, s2, minov, maxov);
-                    stateSum += ((minov + delta) / maxov) * s1.length();
-                    break;
+                    totalSum += ((minov + delta) / maxov) * s1.length();
                 }
             }
         }
 
-        for(Segment s1 : preds) {
-            if(!hasOverlap(s1, refs)) {
-                Nstate += s1.length();
-            }
-        }
-        if(Nstate == 0) return -1.0;
-
-        return(100.0/Nstate) * stateSum;
-
+        if (N == 0) return -1.0;
+        return (100.0 / N) * totalSum;
     }
 
+    public double calculateStateSOV(String predicition, String reference, char state) {
+
+        StringBuilder sbPred = new StringBuilder();
+        StringBuilder sbRef  = new StringBuilder();
+        for (int i = 0; i < predicition.length(); i++) {
+            if (predicition.charAt(i) != '-') {
+                sbPred.append(predicition.charAt(i));
+                sbRef.append(reference.charAt(i));
+            }
+        }
+        String cleanPred = sbPred.toString();
+        String cleanRef  = sbRef.toString();
+        List<Segment> preds = filterByType(getSegments(cleanPred), state);
+        List<Segment> refs  = filterByType(getSegments(cleanRef), state);
+
+        double stateSum = 0;
+        int Nstate = 0;
+
+        for (Segment s1 : refs) {
+            List<Segment> overlapsOfS1 = new ArrayList<>();
+            for (Segment s2 : preds) {
+                if (isOverlapping(s1, s2)) {
+                    overlapsOfS1.add(s2);
+                }
+            }
+
+            if (overlapsOfS1.isEmpty()) {
+                Nstate += s1.length();
+            } else {
+                Nstate += s1.length() * overlapsOfS1.size();
+            }
+
+            for (Segment s2 : overlapsOfS1) {
+                double minov = getMinov(s1, s2);
+                double maxov = getMaxov(s1, s2);
+                double delta = getDelta(s1, s2, minov, maxov);
+                stateSum += ((minov + delta) / maxov) * s1.length();
+            }
+        }
+
+        if (Nstate == 0) return -1.0;
+        return (100.0 / Nstate) * stateSum;
+    }
 }

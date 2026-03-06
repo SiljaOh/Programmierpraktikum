@@ -51,7 +51,7 @@ public class ValidationResult {
 
    //Mean
    public static double getMean(List<Double> values) {
-      return values.stream().mapToDouble(d -> d).average().orElse(0.0);
+      return values.stream().filter(d -> d >= 0).mapToDouble(d -> d).average().orElse(0.0);
    }
 
    //Standard Deviation
@@ -59,8 +59,8 @@ public class ValidationResult {
       List<Double> valid = values.stream().filter(d -> d >= 0).toList();
       if (valid.isEmpty()) return 0.0;
       double temp = 0;
-      for (double d : values) temp += (d - mean) * (d - mean);
-      return Math.sqrt(temp / values.size());
+      for (double d : valid) temp += (d - mean) * (d - mean);
+      return Math.sqrt(temp / valid.size());
    }
 
    //median = 50% Quantile
