@@ -39,10 +39,11 @@ public class SeclibParser {
                     ss = null;
                 } else if (trimmedLine.startsWith("AS ")) {
 
-                    as = trimmedLine.substring(3).trim().replaceAll("[^A-Z]", "");
-                } else if (trimmedLine.startsWith("SS ")) {
+                    as = trimmedLine.substring(3).trim().replaceAll("[^A-Z-]", "");
+                    //für validation
+                } else if (trimmedLine.startsWith("SS ") || trimmedLine.startsWith("PS ")) {
 
-                    ss = trimmedLine.substring(3).trim().replaceAll("[^A-Z]","");
+                    ss = trimmedLine.substring(3).trim().replaceAll("[^A-Z-]","");
                 }
             }
 
