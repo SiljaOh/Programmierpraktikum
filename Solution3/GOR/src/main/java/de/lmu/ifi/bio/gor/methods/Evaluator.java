@@ -29,8 +29,7 @@ public class Evaluator {
 
         int totalState = 0; //N
         int correctState = 0;//n
-        for (
-                int i = 0; i < reference.length(); i++) {
+        for (int i = 0; i < reference.length(); i++) {
             if (reference.charAt(i) == state) {
                 totalState++;
                 if (prediction.charAt(i) == state) {
@@ -38,7 +37,7 @@ public class Evaluator {
                 }
             }
         }
-        if (totalState == 0) return 0.0;
+        if (totalState == 0) return -1.0; //Abfangen für - im Ouput
         return (double) correctState / totalState * 100.0;
     }
 
@@ -116,7 +115,6 @@ public class Evaluator {
         return Math.min(Math.min(d1, d2), Math.min(d3, d4));
     }
 
-    //TODO SOV per State
     //---------SOV Hilfsmethoden-------------
 
     //SOV = Segment Overlap measure
@@ -160,9 +158,42 @@ public class Evaluator {
             }
         }
 
-        // Endergebnis: (100 / N) * Summe
-        if (N == 0) return 0.0;
+        // Endergebnis:(100 / N) * Summe
+        if (N == 0) return -1.0;
         return (100.0 / N) * totalSum;
 
     }
+
+    //SOV PER STATE
+    public double calculateStateSOV(String predicition, String reference, char state) {
+        List<Segment> preds = filterByType( getSegments(predicition), state);
+        List<Segment> refs = filterByType( getSegments(reference), state);
+
+        double stateSum = 0;
+        int Nstate = 0; //N(i)
+
+        for (Segment s1 : refs) {
+            Nstate += s1.length();
+            for (Segment s2 : preds) {
+                if (isOverlapping(s1, s2)) {
+                    double minov = getMinov(s1, s2);
+                    double maxov = getMaxov(s1, s2);
+                    double delta = getDelta(s1, s2, minov, maxov);
+                    stateSum += ((minov + delta) / maxov) * s1.length();
+                    break;
+                }
+            }
+        }
+
+        for(Segment s1 : preds) {
+            if(!hasOverlap(s1, refs)) {
+                Nstate += s1.length();
+            }
+        }
+        if(Nstate == 0) return -1.0;
+
+        return(100.0/Nstate) * stateSum;
+
+    }
+
 }
