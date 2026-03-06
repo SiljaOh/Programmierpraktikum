@@ -217,65 +217,44 @@ public abstract class GorMethod {
         int n = prediction.length();
         char[] processed = prediction.toCharArray();
 
-        // 1. durchlauf zu kurze H und E segmente zu C
-        for (int i = 0; i < n; i++) {
-            char current = processed[i];
+        // 1 mal vor 1 mal nach c korrektur
+        for (int pass = 0; pass < 2; pass++) {
 
-            // wv gleiche buchstaben links nebeneinander
-            int left = 0;
-            for (int j = i - 1; j >= 0; j--) {
-                if (processed[j] == current) left++;
-                else break;
+            // einzelnes C zwischen gleichen Nachbarn korrigieren, erst nach einer runde H E
+            // z.B. HHHCHHH -> HHHHHHH, aber HHHCEEE bleibt
+            if (pass == 1) {
+                for (int i = 1; i < n - 1; i++) {
+                    if (processed[i] == 'C' && processed[i - 1] == processed[i + 1] && processed[i - 1] != 'C') {
+                        processed[i] = processed[i - 1];
+                    }
+                }
             }
 
-            // wv gleiche buchstaben rechts nebeneinander
-            int right = 0;
-            for (int j = i + 1; j < n; j++) {
-                if (processed[j] == current) right++;
-                else break;
+            for (int i = 0; i < n; i++) {
+                char current = processed[i];
+
+                // wv gleiche buchstaben links nebeneinander
+                int left = 0;
+                for (int j = i - 1; j >= 0; j--) {
+                    if (processed[j] == current) left++;
+                    else break;
+                }
+
+                // wv gleiche buchstaben rechts nebeneinander
+                int right = 0;
+                for (int j = i + 1; j < n; j++) {
+                    if (processed[j] == current) right++;
+                    else break;
+                }
+
+                // gesamt nachbarn anschauen
+                int sameState = left + 1 + right;
+
+                if (current == 'H' && sameState < minH) processed[i] = 'C';
+                if (current == 'E' && sameState < minE) processed[i] = 'C';
             }
-
-            // gesamt window anschauen
-            int sameState = left + 1 + right;
-
-            if (current == 'H' && sameState < minH) processed[i] = 'C';
-            if (current == 'E' && sameState < minE) processed[i] = 'C';
         }
 
-        // nächste runde einzelnes C zwischen gleichen Nachbarn korrigieren
-        // HHHCHHH -> HHHHHHH, aber HHHCEEE bleibt
-        for (int i = 1; i < n - 1; i++) {
-            if (processed[i] == 'C'
-                    && processed[i - 1] == processed[i + 1]
-                    && processed[i - 1] != 'C') {
-                processed[i] = processed[i - 1];
-            }
-        }
-
-        // nochmal zu kurze Segmente prüfen die durch Pass 2 entstanden sein könnten
-        for (int i = 0; i < n; i++) {
-            char current = processed[i];
-
-            // wv gleiche buchstaben links nebeneinander
-            int left = 0;
-            for (int j = i - 1; j >= 0; j--) {
-                if (processed[j] == current) left++;
-                else break;
-            }
-
-            // wv gleiche buchstaben rechts nebeneinander
-            int right = 0;
-            for (int j = i + 1; j < n; j++) {
-                if (processed[j] == current) right++;
-                else break;
-            }
-
-            // gesamt navhbarn anschauen
-            int sameState = left + 1 + right;
-
-            if (current == 'H' && sameState < minH) processed[i] = 'C';
-            if (current == 'E' && sameState < minE) processed[i] = 'C';
-        }
         return new String(processed);
     }
 }
