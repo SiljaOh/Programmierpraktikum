@@ -165,7 +165,7 @@ public class validateGor {
     //
     //>id Q3  SOV  QH  QE  QC  SOV_H  SOV_E  SOV_C
     //AS GLPDVQTKEAAAAAKKKGGLPRRTKLAAAAAAAA
-    //PS -------HHHHHHHHHEEEEECCCCCC-------
+    //PS --------HHHHHHHHHEEEEECCCCCC--------
     //SS CHHHHHCHHHHHHHHHEEEEECCEEEECCCHHHH
 
     private static void writeDetailedOutput(String path, List<ValidationResult> results) throws IOException {
