@@ -270,7 +270,7 @@ public abstract class GorMethod {
                 else break;
             }
 
-            // gesamt window anschauen
+            // gesamt navhbarn anschauen
             int sameState = left + 1 + right;
 
             if (current == 'H' && sameState < minH) processed[i] = 'C';
