@@ -45,21 +45,23 @@ public class TestSetCreator {
 
         }
         try (PrintWriter pw = new PrintWriter("clean_test.db")) {
-
             for (Protein p : cleanTestSet) {
-
                 pw.println("> " + p.getId());
-
                 pw.println("AS " + p.getSequence());
-
                 pw.println("SS " + p.getStructure());
-
                 pw.println();
-
             }
 
         }
-
+        try (PrintWriter pw = new PrintWriter("train_400.db")) {
+            for (Protein p : trainingSet) {
+                pw.println("> " + p.getId());
+                pw.println("AS " + p.getSequence());
+                pw.println("SS " + p.getStructure());
+                pw.println();
+            }
+        }
+        System.out.println("Trainingset: " + trainingSet.size());
         System.out.println("clean test set size: " + cleanTestSet.size());
 
     }
