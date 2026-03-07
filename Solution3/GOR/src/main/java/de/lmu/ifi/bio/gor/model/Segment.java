@@ -7,7 +7,7 @@ public class Segment {
     public int end;
 
     public Segment(char type, int start, int end) {
-        this.type = type;   // 'this' sorgt dafür, dass das Feld der Klasse gefüllt wird
+        this.type = type;
         this.start = start;
         this.end = end;
     }
