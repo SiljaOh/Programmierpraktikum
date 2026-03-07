@@ -23,9 +23,9 @@ import getpass
 
 
 def norm_kw(s: str) -> str:
-    s = s.strip().strip('"').strip("'")
-    s = " ".join(s.split())
-    s = s.rstrip(".;")
+    s = s.strip().strip('"').strip("'")     # .strip() -> entfernt führende/trailing Leerzeichen und dann -> entfernt Anführungszeichen
+    s = " ".join(s.split())                 # -> entfernt doppelte Leerzeichen
+    s = s.rstrip(".;")                      # -> entfernt abschließende Punkte/Semikolons
     if not s:
         return ""
     return s
@@ -87,7 +87,7 @@ def build_parser():
     src.add_argument("--db", action="store_true")
     return p
 
-def process(entry, wanted):
+def process(entry, wanted):         # -> verarbeitet einen SwissProt-Eintrag (bis //).
     # entry = Liste aller Zeilen eines SwissProt-Eintrags (bis "//")
     # wanted = Menge der gesuchten Keywords
     acs = []             # Liste der Accession-Nummern
@@ -103,7 +103,9 @@ def process(entry, wanted):
         elif line.startswith("KW   "):
             kw_buffer.append(line[5:].strip())
 
-    # ALLE KW-Zeilen zusammenführen
+    # ALLE KW-Zeilen zusammenführen: KW-Zeilen eines Eintrags zusammenführen (mehrere KW-Zeilen möglich)
+    # Keywords an Semikolon trennen, normalisieren und als Menge speichern
+    # (Set verhindert Duplikate und erlaubt effiziente Mengenoperationen)
     kw_text = " ".join(kw_buffer)
 
     kws = set()
@@ -112,9 +114,11 @@ def process(entry, wanted):
         if t:
             kws.add(t)
 
+    # Prüfen, ob mindestens ein gesuchtes Keyword enthalten ist
+    # isdisjoint() → True wenn KEINE Überschneidung
     if not wanted.isdisjoint(kws):          # prüft, ob mindestens ein Keyword übereinstimmt
         return acs
-
+    # Kein Treffer
     return []
 
 # ssh -p 12 fiocco@bioclient2.bio.ifi.lmu.de
@@ -125,7 +129,7 @@ def process(entry, wanted):
 # Passwort explizit oder über os.environ (und nicht im Code gespeichert)?
 
 def searchinDB_AC(wanted):
-    #Liste von AC-Codes aus unserer Datenbank
+    #Liste von AC-Codes aus unserer Datenbank: sucht Accessions (AC) in der Datenbank anhand gegebener Keywords.
     # DB-Passwort interaktiv abfragen (nicht im Code speichern)
     # DB-Passwort einmal abfragen und an die DB-Funktion weitergeben
     dbpass = getpass.getpass("DB password: ")
@@ -137,23 +141,30 @@ def searchinDB_AC(wanted):
         password=dbpass,
         database="bioprakt17"
     )
-
+    # cursor erzeugen: Objekt zum Ausführen von SQL-Befehlen
     cursor = connection.cursor()
-
+    # gesuchte Keywords in Liste umwandeln (für SQL-Parameter)
     keyword_list = list(wanted)
+
+    # falls keine Keywords vorhanden → leere Ergebnisliste
     if not keyword_list:
         cursor.close()
         connection.close()
         return []
 
+    # dynamische Platzhalter für die SQL-Klausel WHERE ... IN (...)
+    # Anzahl der %s entspricht der Anzahl der gesuchten Keywords.
     placeholders = ",".join(["%s"] * len(keyword_list))
 
 #   sql_search bzw. SQL code mit f-string
 #   sequence → sequence_keyword → keyword (Many-to-Many-Beziehung)
 #   DISTINCT entfernt Duplikate (wg. JOIN/Many-to-Many)
+#   SELECT DISTINCT s.accession → gibt die Treffer als Accessions aus und verhindert Duplikate
 #   JOIN 1: sequence → sequence_keyword (über sequence_id)
 #   JOIN 2: sequence_keyword → keyword (über keyword_id)
-#   WHERE: Filter auf keyword.word
+#   WHERE: Filter auf keyword.word (filtert die Keywords, die der User gesucht hat)
+#   kw.keyword_id = sk.keyword_id -> findet alle sequence_ids, die dieses Keyword haben
+#   sk.sequence_id = s.sequence_id -> holt die entsprechenden Sequenzen
 #   ORDER BY: sortierte Ausgabe
 #   s  = sequence
 #   sk = sequence_keyword
@@ -216,6 +227,9 @@ def main():
     for ac in sorted(hits):
         print(ac)
 
+# Führt main() nur aus, wenn das Script direkt gestartet wird
+# (z.B. python3 spkeyword-sql.py ...).
+# Beim Import als Modul wird main() nicht automatisch ausgeführt.
 if __name__ == "__main__":
     main()
 

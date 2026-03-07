@@ -5,10 +5,12 @@ import urllib.request
 from dataclasses import dataclass
 from typing import Dict, List, Optional, Tuple
 import math
+import matplotlib.pyplot as plt
 
 # makescc.py (Aufgabe 11)
 
-
+# Mapping von 3 Letter Aminosäuren (PDB) zu 1 Letter Code fuer Algorithmus
+# für Sequenzdarstellung und weitere Berechnungen ist der 1-Letter-Code besser
 AA3_TO_AA1: Dict[str, str] = {
     "ALA": "A", "ARG": "R", "ASN": "N", "ASP": "D",
     "CYS": "C", "GLN": "Q", "GLU": "E", "GLY": "G",
@@ -17,20 +19,26 @@ AA3_TO_AA1: Dict[str, str] = {
     "THR": "T", "TRP": "W", "TYR": "Y", "VAL": "V",
 }
 
-
-@dataclass
+@dataclass # -> speichert pro Residue genau ein Atom:
+# @dataclass ist ein Decorator: Sprachkonstrukt in Python, mit dem man das Verhalten einer Funktion oder Klasse erweitert oder verändert, ohne deren Code direkt zu modifizieren.
 class ResidueAtom:
-    chain: str
-    resseq: int
-    serial: int
-    aa1: str
-    x: float
-    y: float
-    z: float
-    ss: str = "C"   # H (Helix), E (Extended for beta-sheet), C (Coil)
+    chain: str          # Ketten-ID = einbuchstabiger Identifikator, der eine Polypeptidkette innerhalb einer PDB-Struktur kennzeichnet.
+    resseq: int         # Positionsnummer im PDB
+    serial: int         # Atomnummer
+    aa1: str            # Aminosäure als 1-Letter-Code
+    x: float            # 3D-Koordinaten
+    y: float            # 3D-Koordinaten
+    z: float            # 3D-Koordinaten
+    ss: str = "C"       # Sekundaerstruktur: H (Helix), E (Extended for beta-sheet), C (Coil)
 
 
 def parse_args() -> argparse.Namespace:
+    # Namespace ist ein Container = Objekt, das mehrere zusammengehörige Werte strukturiert speichert und über Namen zugänglich macht.
+    # argparse ist das Standard-Modul in Python zur Verarbeitung von Kommandozeilenargumenten.
+    # sys.argv ist die Liste der Kommandozeilenargumente, mit denen ein Python-Programm gestartet wurde.
+    # CAVE: Ohne type-Angabe wäre der Standardtyp str, d.h. args.distance wäre ein String.
+    # contact matrix = contact matrix eine quadratische Matrix, die speichert, welche Residuen miteinander in Kontakt stehen.
+    # default = None -> Wenn dieses Argument auf der Kommandozeile nicht angegeben wird, bekommt es automatisch den Wert None.
     p = argparse.ArgumentParser(description="Generate sscc table for a PDB id or local PDB file")
     p.add_argument("--id", required=True, help="PDB id (e.g. 1CRN) or local path to .pdb file")
     p.add_argument("--distance", required=True, type=float, help="contact cutoff distance in Angstrom")
@@ -41,22 +49,34 @@ def parse_args() -> argparse.Namespace:
 
 
 # Funktion 1) download_pdb
+# Lädt eine PDB-Datei entweder von lokalem Pfad oder per Download (RCSB)
+# Rückgabe: Liste von Zeilen (List[str]), inklusive Zeilenumbrüche
 def download_pdb(pdb_id_or_path: str) -> List[str]:
     import os
+    # falls der Input ein existierender Dateipfad ist:
     if os.path.isfile(pdb_id_or_path):
         with open(pdb_id_or_path, "r", encoding="utf-8", errors="replace") as f:
             return f.readlines()
 
+    # strip() entfernt Whitespaces, upper() normalisiert auf Großbuchstaben
     pdb_id = pdb_id_or_path.strip().upper()
-    url = f"https://files.rcsb.org/download/{pdb_id}.pdb"
+    url = f"https://files.rcsb.org/download/{pdb_id}.pdb"    # Standard-Download-URL für PDB-Dateien vom RCSB
 
     with urllib.request.urlopen(url) as response:
-        text = response.read().decode("utf-8", errors="replace")
+        text = response.read().decode("utf-8", errors="replace")    # decode mit UTF-8; ungültige Bytes werden ersetzt statt Exception auszulösen
 
     return text.splitlines(keepends=True)
 
 
 # Funktion 2) extract_ss_ranges
+# Liest HELIX- und SHEET-Records aus einer PDB-Datei
+# Rückgabe:
+#   helix  -> Liste von (chain, start_resseq, end_resseq)
+#   sheet  -> Liste von (chain, start_resseq, end_resseq)
+# chain ist der Ketten-Identifier einer PDB-Struktur.
+# (chain, start_resseq, end_resseq) ist ein Tupel, das einen Sekundärstruktur-Bereich beschreibt.
+# resseq = Nummer, die im PDB-File jedem Residue zugeordnet ist.
+# end_resseq = end-residue-sequenznummer eines Sekundärstruktur-Bereichs
 def extract_ss_ranges(
     pdb_lines: List[str]
 ) -> Tuple[List[Tuple[str, int, int]], List[Tuple[str, int, int]]]:
@@ -110,6 +130,7 @@ def keep_only_model_one(pdb_lines: List[str]) -> List[str]:
 
 
 # Funktion 4) parse_residue_atoms
+# -> extrahiert aus einer PDB-Datei pro Residue genau ein bestimmtes Atom (z.B. CA) und speichert dessen Koordinaten
 def parse_residue_atoms(
     pdb_lines: List[str],
     atom_type: str,
@@ -158,6 +179,7 @@ def parse_residue_atoms(
 
 
 # Funktion 5) ss_for_residue
+# -> bestimmt für ein einzelnes Residue, ob es zu einer Helix (H), einem Sheet (E) oder keiner definierten Sekundärstruktur (C) gehört.
 def ss_for_residue(
     chain: str,
     resseq: int,
@@ -177,20 +199,38 @@ def ss_for_residue(
 
 
 # Funktion 6) compute_contacts
+# für alle Residue Paare wird die euklidische Distanz zwischen den ausgewählten Atomen (z.B. CA)
+# euklidische Distanz = normale, direkte Abstand zwischen zwei Punkten im Raum, wie man ihn aus dem Satz des Pythagoras kennt.
 def compute_contacts(residues, distance_cutoff, local_length):
     # Kontakt wenn Distanz kleiner cutoff
+
+    # Anzahl residues
     n = len(residues)
+    # Zähler für Kontakte pro Residue
+    # local_counts[i]  -> Kontakte mit kleinem Sequenzabstand
+    # global_counts[i] -> alle übrigen Kontakte
     global_counts = [0] * n
     local_counts = [0] * n
 
+    # Kontaktmatrix:
+    # contact_matrix[i][j] = 1 falls Distanz < Cutoff,
+    # sonst 0 (binäre Darstellung der Struktur als Graph)
     contact_matrix = [[0] * n for _ in range(n)]
+
+    # Distanzmatrix:
+    # distance_matrix[i][j] speichert die euklidische Distanz
+    # zwischen Residue i und j
     distance_matrix = [[0.0] * n for _ in range(n)]
 
+    # Jedes Residue-Paar genau einmal betrachten
+    # (j startet bei i+1, um Doppelberechnung zu vermeiden)
     for i in range(n):
         ai = residues[i]
         for j in range(i + 1, n):
             aj = residues[j]
 
+            # Berechnung
+            # Koordinaten in der PDB-Datei sind kartesische Koordinaten in Ångström.
             dx = ai.x - aj.x
             dy = ai.y - aj.y
             dz = ai.z - aj.z
@@ -203,9 +243,13 @@ def compute_contacts(residues, distance_cutoff, local_length):
                 contact_matrix[i][j] = 1
                 contact_matrix[j][i] = 1
 
+                # prüfen, ob beide Residues in derselben Kette sind
                 same_chain = ai.chain == aj.chain
+                # Sequenzabstand
                 seq_gap = abs(ai.resseq - aj.resseq)
 
+                # Definition eines lokalen Kontakts:
+                # gleicher Chain-Identifier und geringer Sequenzabstand (< local_length)
                 if same_chain and 0 < seq_gap < local_length:
                     local_counts[i] += 1
                     local_counts[j] += 1
@@ -217,6 +261,7 @@ def compute_contacts(residues, distance_cutoff, local_length):
 
 
 # Funktion 7) write_contact_matrix (nur wenn --contactmatrix benutzt wird)
+# -> schreibt die berechnete Kontaktmatrix als tabulator-getrennte Textdatei (TSV) in eine Datei.
 def write_contact_matrix(path, residues, contact_matrix):
     labels = [f"{r.chain}{r.resseq}" for r in residues]
 
@@ -225,47 +270,67 @@ def write_contact_matrix(path, residues, contact_matrix):
         for i, row in enumerate(contact_matrix):
             f.write(labels[i] + "\t" + "\t".join(str(v) for v in row) + "\n")
 
+def write_distance_heatmap(path, distance_matrix):
+    plt.figure(figsize=(6, 6))
+    plt.imshow(distance_matrix, cmap="viridis", origin="lower")
+    plt.colorbar(label="Distance (Å)")
+    plt.xlabel("Residue index")
+    plt.ylabel("Residue index")
+    plt.tight_layout()
+    plt.savefig(path, dpi=300)
+    plt.close()
 
 def main() -> int:
+# Logik/Struktur:
+# 1) args
+# 2) PDB laden
+# 3) Helix/Sheet ranges
+# 4) Model 1 filtern
+# 5) Residues extrahieren (Atomtyp)
+# 6) ss zuweisen
+# 7) Kontakte berechnen
+# 8) Tabelle ausgeben
+# 9) optional Matrix schreiben
+# 10) Exitcode 0
 
-    # 1) Argumente/Variable lesen
+    # 1) Argumente/Variable lesen (args)
     args = parse_args()
 
-    # 2) Werte in Variable schreiben
+    # 2) Werte in Variable schreiben + PDB laden
     pdb_id = args.id
     distance_cutoff = args.distance
     atom_type = args.atom_type
     local_length = args.length
     contactmatrix_path = args.contactmatrix
 
-    # 3) PDB laden
     pdb_lines_all = download_pdb(pdb_id)
 
-    # 4) Sekundaerstruktur Bereiche auslesen
+    # 3) Sekundaerstruktur Bereiche auslesen
     helix_ranges, sheet_ranges = extract_ss_ranges(pdb_lines_all)
 
-    # 5) Modell 1 ablesen
+    # 4) Modell 1 ablesen
     pdb_lines_model_one = keep_only_model_one(pdb_lines_all)
 
-    # 6) Residues sammeln
+    # 5) Residues sammeln / extrahieren
     residues = parse_residue_atoms(
         pdb_lines_model_one,
         atom_type,
         AA3_TO_AA1
     )
 
-    # 7) ss pro Residue setzen
+    # 6) ss pro Residue setzen (ss = Sekundärstruktur)
     for r in residues:
         r.ss = ss_for_residue(r.chain, r.resseq, helix_ranges, sheet_ranges)
 
-    # 8) Kontakte berechnen
-    global_counts, local_counts, contact_matrix, _ = compute_contacts(
+    # 7) Kontakte berechnen
+    global_counts, local_counts, contact_matrix, distance_matrix = compute_contacts(
         residues,
         distance_cutoff,
         local_length
     )
+    write_distance_heatmap("distance_map.png", distance_matrix)
 
-    # 9) sscc ausgeben
+    # 8) Secondary Structure Contact Count (sscc) ausgeben
     print("chain\tpos\tserial\taa\tss\tglobal\tlocal")
     for i, r in enumerate(residues):
         print(
@@ -274,11 +339,13 @@ def main() -> int:
             f"{global_counts[i]}\t{local_counts[i]}"
         )
 
-    # 10) Dateien schreiben
+    # 9) Dateien schreiben
     if contactmatrix_path is not None:
         write_contact_matrix(contactmatrix_path, residues, contact_matrix)
 
+    # 10) Exitcode 0 (Zahl an das Betriebssystem zurück)
     return 0
+
 
 
 if __name__ == "__main__":
