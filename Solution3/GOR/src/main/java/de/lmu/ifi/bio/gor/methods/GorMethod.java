@@ -205,7 +205,13 @@ public abstract class GorMethod {
             }
             else result.append('C');
         }
-        return result.toString();
+        // Ränder wie in slidingWindow auffüllen
+        int m = 8;
+        String raw = result.toString();
+        if (raw.length() <= 2 * m) return raw; // zu kurz, nichts tun
+
+        return "-".repeat(m) + raw.substring(m, raw.length() - m) + "-".repeat(m);
+
     }
 
 
