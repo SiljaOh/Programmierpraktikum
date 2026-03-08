@@ -59,6 +59,7 @@ public class Train {
         //seclib
         List<Protein> data = SeclibParser.parseSeclib(trainPath);
 
+
         //train, get counts, no log scores
         gor.train(data);
 
