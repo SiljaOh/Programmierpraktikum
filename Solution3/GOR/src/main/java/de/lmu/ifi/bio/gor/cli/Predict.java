@@ -78,6 +78,11 @@ public class Predict {
         gor.setUseProbability(probabilities);
         gor.getMatrix().setUseProbability(probabilities);
 
+        //für html
+        if ("html".equalsIgnoreCase(format)) {
+            System.out.println("<div class='gor-results' style='font-family:monospace; line-height:1.2;'>");
+        }
+
         //entweder --seq oder --maf
         if (seqPath != null) {
             List<Protein> proteins = GorMethod.readFasta(seqPath);
@@ -92,7 +97,7 @@ public class Predict {
 //                JmolVisualizer.addProtein(p.getId(), p.getSequence(), "", processedresult);
 //                JmolVisualizer.showAll();
 
-                printResult(p.getId(), p.getSequence(), processedresult, probabilities, gor);
+                printResult(p.getId(), p.getSequence(), processedresult, probabilities, gor, format);
 
 
             }
@@ -119,22 +124,44 @@ public class Predict {
 //                    JmolVisualizer.addProtein(alignment.getId(), alignment.getReferenceSeq(), realSS, processedresult);
 //                    JmolVisualizer.showAll();
 
-                    printResult(alignment.getId(), alignment.getReferenceSeq(), processedresult, probabilities, gor);
+                    printResult(alignment.getId(), alignment.getReferenceSeq(), processedresult, probabilities, gor, format);
                 }
             }
+        }
+        if ("html".equalsIgnoreCase(format)) {
+            System.out.println("</div>");
         }
     }
 
     //output funktion
-    private static void printResult(String id, String as, String ps, boolean probabilities, GorMethod gor) {
-        System.out.println("> " + id);
-        System.out.println("AS " + as);
-        System.out.println("PS " + ps);
-        if (probabilities) {
-            printProbabilities(as, gor);
-        }
-        System.out.println();
+    private static void printResult(String id, String as, String ps, boolean probabilities, GorMethod gor, String format) {
+        if ("html".equalsIgnoreCase(format)) {
+            System.out.println("<div style='margin-bottom:20px; border-left: 4px solid #0d6b5c; padding-left:10px;'>");
+            System.out.println("  <div>&gt; " + id + "</div>");
+            System.out.println("  <div>AS " + as + "</div>");
 
+            // PS mit Farben für die Web-Vorschau
+            System.out.print("  <div>PS ");
+            for (char c : ps.toCharArray()) {
+                String color = (c == 'H') ? "#e63946" : (c == 'E' ? "#457b9d" : "#2a9d8f");
+                System.out.print("<span style='color:" + color + "; font-weight:bold;'>" + c + "</span>");
+            }
+            System.out.println("</div>");
+
+            if (probabilities) {
+                printProbabilitiesHtml(as, gor);
+            }
+            System.out.println("</div>");
+        } else {
+            // Klassischer TXT Output
+            System.out.println("> " + id);
+            System.out.println("AS " + as);
+            System.out.println("PS " + ps);
+            if (probabilities) {
+                printProbabilities(as, gor);
+            }
+            System.out.println();
+        }
     }
 
     private static void printProbabilities(String sequence, GorMethod gor) {
@@ -158,6 +185,30 @@ public class Predict {
             System.out.println(sb);
         }
     }
+
+    private static void printProbabilitiesHtml(String sequence, GorMethod gor) {
+        double[][] raw = gor.getScores(sequence);
+        String[] labels = {"PH", "PE", "PC"};
+        //H ist rot, E ist blau, C ist grün
+        String[] colors = {"#e63946", "#457b9d", "#2a9d8f"};
+        int m = 8;
+        for (int s = 0; s < 3; s++) {
+            System.out.print("  <div>" + labels[s] + " --------");
+            for (int i = m; i < raw.length - m; i++) {
+                double[] exp = {Math.exp(raw[i][0]), Math.exp(raw[i][1]), Math.exp(raw[i][2])};
+                double sum = exp[0] + exp[1] + exp[2];
+                int val = (int) Math.round(exp[s] / sum * 10);
+                if (val > 9) val = 9;
+                double opacity = 0.15 + (val / 9.0) * 0.85;
+                System.out.print(
+                        "<span style='color:" + colors[s] + "; font-weight:bold; opacity:" +
+                                String.format("%.2f", opacity) + ";'>" + val + "</span>"
+                );
+            }
+            System.out.println("--------</div>");
+        }
+    }
+
 }
 
 

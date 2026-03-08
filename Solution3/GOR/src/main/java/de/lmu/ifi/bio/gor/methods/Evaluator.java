@@ -113,8 +113,8 @@ public class Evaluator {
         // Delta = min[(maxov-minov), minov, len(s1)/2, len(s2)/2]
         double d1 = maxov - minov;
         double d2 = minov;
-        double d3 = Math.floor(s1.length() / 2.0);
-        double d4 = Math.floor(s2.length() / 2.0);
+        double d3 = s1.length() / 2;
+        double d4 = s2.length() / 2;
         return Math.min(Math.min(d1, d2), Math.min(d3, d4));
     }
 
