@@ -17,9 +17,18 @@ public class GorMatrix {
     private static final String AMINO_ACIDS = "ACDEFGHIKLMNPQRSTVWY";
 
     protected boolean useProbability = false;
+    protected double pseudoCount = 0.8; // default pseudocount
 
     public void setUseProbability(boolean useProbability) {
         this.useProbability = useProbability;
+    }
+
+    public void setPseudoCount(double pseudoCount) {
+        this.pseudoCount = pseudoCount;
+    }
+
+    public double getPseudoCount() {
+        return pseudoCount;
     }
 
     public int getAaIndex(char aa) {
