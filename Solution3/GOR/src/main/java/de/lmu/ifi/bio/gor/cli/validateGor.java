@@ -14,7 +14,7 @@ public class validateGor {
         String predictionFile = null;
         String seclibFile = null;
         String format = "txt";
-        String summary= null;
+        String summary = null;
         String detailed = null;
 
         for (int i = 0; i < args.length; i++) {
@@ -34,61 +34,52 @@ public class validateGor {
                 case "-d":
                     if (i + 1 < args.length) detailed = args[++i];
                     break;
-                //wenn nichts angegeben
                 default:
                     System.err.println("Unknown argument: " + args[i]);
-                    System.err.println("Usage: java -jar .jar --model <file> --seq <file> [--format <txt|html>]");
-                    System.err.println("Or:    java -jar predict.jar --model <file> --maf <folder> [--format <txt|html>]");
                     System.exit(1);
             }
-
         }
+
         if (predictionFile == null || seclibFile == null) {
             System.err.println("Prediction file and Reference file are required");
             System.exit(1);
         }
 
         try {
-
             List<Protein> refList = SeclibParser.parseSeclib(seclibFile);
-            Map<String, Protein> references = new HashMap<>();
-            for (Protein p : refList) {
-                references.put(p.getId(), p);
-            }
-            List<Protein> predictions = SeclibParser.parseSeclib(predictionFile);
+            Map<String, Protein> predMap = parsePrd(predictionFile);
 
             Evaluator eval = new Evaluator();
             List<ValidationResult> results = new ArrayList<>();
 
-            //berechnung von q3,sov,qh,qe,qc, sov_h, sov_e, sov_c für jedes protein
-            for (Protein pred : predictions) {
+            for (Protein ref : refList) {
+                String id = ref.getId();
+                Protein pred = predMap.get(id);
 
-                String id = pred.getId();
+                String ss = ref.getStructure();
+                String as = ref.getSequence();
 
-                if (references.containsKey(id)) {
-
-                    Protein ref = references.get(id);
-
-                    String as = pred.getSequence();
-                    String ps = pred.getStructure();
-                    String ss = ref.getStructure();
-
-                    double q3 = eval.calculateQ3(ps, ss);
-                    double sov = eval.calculateSOV(ps, ss);
-
-                    double qH = eval.calculateQobs(ps, ss, 'H');
-                    double qE = eval.calculateQobs(ps, ss, 'E');
-                    double qC = eval.calculateQobs(ps, ss, 'C');
-
-                    double sovH = eval.calculateStateSOV(ps, ss, 'H');
-                    double sovE = eval.calculateStateSOV(ps, ss, 'E');
-                    double sovC = eval.calculateStateSOV(ps, ss, 'C');
-
-                    results.add(new ValidationResult(id, q3, sov, qH, qE, qC, sovH, sovE, sovC, as, ps ,ss));
+                if (pred == null) {
+                    String emptyPs = "-".repeat(as.length());
+                    results.add(new ValidationResult(id, 0.0, 0.0, Double.NaN, Double.NaN, Double.NaN,
+                            Double.NaN, Double.NaN, Double.NaN, as, emptyPs, ss));
+                    continue;
                 }
+
+                String ps = pred.getStructure();
+
+                double q3 = eval.calculateQ3(ps, ss);
+                double sov = eval.calculateSOV(ps, ss);
+                double qH = eval.calculateQobs(ps, ss, 'H');
+                double qE = eval.calculateQobs(ps, ss, 'E');
+                double qC = eval.calculateQobs(ps, ss, 'C');
+                double sovH = eval.calculateStateSOV(ps, ss, 'H');
+                double sovE = eval.calculateStateSOV(ps, ss, 'E');
+                double sovC = eval.calculateStateSOV(ps, ss, 'C');
+
+                results.add(new ValidationResult(id, q3, sov, qH, qE, qC, sovH, sovE, sovC, as, ps, ss));
             }
 
-            //output
             writeDetailedOutput(detailed, results);
             writeSummaryOutput(summary, results);
 
@@ -97,44 +88,25 @@ public class validateGor {
         }
     }
 
-    //SUMMARYOUTPUT:
-    //Statistic for protein validation
-    //
-    //Number of Proteins:           513
-    //Mean Protein Length:          164.0
-    //Sum of Protein Length:        84119
-    //Sum of Predicted Positions:   75911
-    //
-    //Tabelle mit allen metrics: q3,qObs_H, qObs_E, qObs_C, SOV, SOV_H, SOV_E, SOV_C
-    //und für jede Metric: Mean, Dev, Min, Max, Median, Quantil_25, Quantil_75, Quantil_5, Quantil_95
-    private static void writeSummaryOutput(String path, List<ValidationResult> Nresults) throws IOException {
+    private static void writeSummaryOutput(String path, List<ValidationResult> results) throws IOException {
         if (path == null) return;
 
         try (PrintWriter pw = new PrintWriter(new FileWriter(path))) {
-
-            // NEU: nur Proteine mit validen Q3-Werten
-            List<ValidationResult> results = Nresults.stream()
-                    .filter(r -> r.getQ3() >= 0)
-                    .toList();
-
             pw.println("Statistic for protein validation");
             pw.println();
             pw.println("Number of Proteins:           " + results.size());
 
-            //mean , sum protein length
             List<Double> lengths = results.stream().map(r -> (double) r.getReference().length()).toList();
             double sumLength = lengths.stream().mapToDouble(Double::doubleValue).sum();
             pw.printf(Locale.US, "Mean Protein Length:          %.1f%n", ValidationResult.getMean(lengths));
             pw.printf(Locale.US, "Sum of Protein Length:        %.0f%n", sumLength);
 
-            //sum of predictet pos
             long predictedPositions = results.stream()
                     .flatMapToLong(r -> r.getPrediction().chars().filter(c -> c != '-').mapToLong(c -> 1))
                     .sum();
             pw.println("Sum of Predicted Positions:   " + predictedPositions);
             pw.println();
 
-            //QScores und SOV scores
             printMetricLine(pw, "q3", results.stream().map(ValidationResult::getQ3).toList());
             printMetricLine(pw, "qObs_H", results.stream().map(ValidationResult::getQH).toList());
             printMetricLine(pw, "qObs_E", results.stream().map(ValidationResult::getQE).toList());
@@ -148,11 +120,9 @@ public class validateGor {
     }
 
     private static void printMetricLine(PrintWriter pw, String name, List<Double> values) {
-
         double mean = ValidationResult.getMean(values);
         double dev = ValidationResult.getStdDev(values, mean);
 
-        // Min/Max nur von validen Werten (>= 0)
         List<Double> valid = values.stream().filter(v -> v >= 0).toList();
         double min = valid.stream().mapToDouble(v -> v).min().orElse(0.0);
         double max = valid.stream().mapToDouble(v -> v).max().orElse(0.0);
@@ -167,24 +137,11 @@ public class validateGor {
                 ValidationResult.getQuantile(values, 0.95));
     }
 
-    //DETAILEDOUTPUT:
-    //
-    //>id Q3  SOV  QH  QE  QC  SOV_H  SOV_E  SOV_C
-    //AS GLPDVQTKEAAAAAKKKGGLPRRTKLAAAAAAAA
-    //PS --------HHHHHHHHHEEEEECCCCCC--------
-    //SS CHHHHHCHHHHHHHHHEEEEECCEEEECCCHHHH
-
-    private static void writeDetailedOutput(String path, List<ValidationResult> nresults) throws IOException {
+    private static void writeDetailedOutput(String path, List<ValidationResult> results) throws IOException {
         if (path == null) return;
 
-        try  (PrintWriter pw = new PrintWriter(new FileWriter(path))) {
-
-            List<ValidationResult> results = nresults.stream()
-                    .filter(r -> r.getQ3() >= 0)
-                    .toList();
-
+        try (PrintWriter pw = new PrintWriter(new FileWriter(path))) {
             for (ValidationResult r : results) {
-                //head >id Q3 SOV QH QE QC SOV_H SOV_E SOV_C
                 pw.printf(Locale.US, "> %-10s %s %s %s %s %s %s %s %s%n",
                         r.getId(),
                         formatScore(r.getQ3()),
@@ -196,21 +153,38 @@ public class validateGor {
                         formatScore(r.getSovE()),
                         formatScore(r.getSovC())
                 );
-
                 pw.println("AS " + r.getSequence());
                 pw.println("PS " + r.getPrediction());
                 pw.println("SS " + r.getReference());
-
                 pw.println();
             }
         }
     }
 
-    //gibt bei -1.0 den Strich - aus
     private static String formatScore(double value) {
-        if (value < 0) {
-            return " - ";
-        }
+        if (value < 0) return " - ";
         return String.format(Locale.US, "%5.1f", value);
+    }
+
+    private static Map<String, Protein> parsePrd(String path) throws IOException {
+        Map<String, Protein> map = new LinkedHashMap<>();
+        try (BufferedReader br = new BufferedReader(new FileReader(path))) {
+            String line, id = null, as = "", ps = "";
+            while ((line = br.readLine()) != null) {
+                line = line.trim();
+                if (line.startsWith("> ")) {
+                    if (id != null) map.put(id, new Protein(id, as, ps));
+                    id = line.substring(2).trim().split("\\s+")[0];
+                    as = "";
+                    ps = "";
+                } else if (line.startsWith("AS ")) {
+                    as = line.substring(3).trim();
+                } else if (line.startsWith("PS ")) {
+                    ps = line.substring(3).trim();
+                }
+            }
+            if (id != null) map.put(id, new Protein(id, as, ps));
+        }
+        return map;
     }
 }

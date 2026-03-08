@@ -87,7 +87,9 @@ public class Predict {
         if (seqPath != null) {
             List<Protein> proteins = GorMethod.readFasta(seqPath);
             for (Protein p : proteins) {
-                if (p.getSequence().length() < 17) continue;
+                if (p.getSequence().length() < 17) {
+                    continue;
+                }
                 String result = gor.predict(p.getSequence());
 
                 //BONUS postprocessing
