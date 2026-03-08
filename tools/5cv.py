@@ -39,7 +39,6 @@ for i, e in enumerate(entries):
 methods = ["gor1", "gor3", "gor4"]
 
 # ---- Summary Parser ----
-# Format: "q3      : Mean:   61.7   Dev:   10.5 ..."
 def parse_mean(line):
     m = re.search(r'Mean:\s*([\d.]+)', line, re.IGNORECASE)
     if m:
@@ -78,6 +77,18 @@ def parse_summary_file(summary_file):
                 val = parse_mean(stripped)
                 if val is not None:
                     scores["SOV"] = val
+            elif re.match(r'^sov_h\s*:', stripped, re.IGNORECASE):
+                val = parse_mean(stripped)
+                if val is not None:
+                    scores["SOV_H"] = val
+            elif re.match(r'^sov_e\s*:', stripped, re.IGNORECASE):
+                val = parse_mean(stripped)
+                if val is not None:
+                    scores["SOV_E"] = val
+            elif re.match(r'^sov_c\s*:', stripped, re.IGNORECASE):
+                val = parse_mean(stripped)
+                if val is not None:
+                    scores["SOV_C"] = val
 
     if not scores:
         print(f"  WARNING: No scores parsed from {summary_file}!")
@@ -145,11 +156,9 @@ for fold in range(k):
         print(f"{method} Fold {fold+1} done -> {summary_file}")
 
         # ---- GOR V (nur wenn Alignments-Ordner existiert) ----
-        # Laut Spec: predict.jar --maf <dir>  (KEIN --seq, Sequenzen kommen aus .aln)
         if Path(alignments_dir).exists():
-            gor5_key = f"gor5_{method}"  # z.B. gor5_gor1, gor5_gor3, gor5_gor4
+            gor5_key = f"gor5_{method}"
 
-            # Nur .aln-Dateien der Test-Proteine in tmp-Ordner kopieren
             fold_maf_dir = Path(f"fold{fold+1}_maf")
             fold_maf_dir.mkdir(exist_ok=True)
 
@@ -160,7 +169,6 @@ for fold in range(k):
                     copied += 1
             print(f"  GOR5: copied {copied} .aln files for {len(test_ids)} test proteins")
 
-            # ---- Predict GOR V (nur --maf, laut Spec kein --seq) ----
             pred_file5 = f"{gor5_key}_fold{fold+1}.txt"
             subprocess.run([
                 "java", "-jar", "predict.jar",
@@ -169,7 +177,6 @@ for fold in range(k):
                 "--maf",    str(fold_maf_dir)
             ], stdout=open(pred_file5, "w"), check=True)
 
-            # ---- Validate GOR V ----
             summary_file5  = f"{gor5_key}_fold{fold+1}_summary.txt"
             detailed_file5 = f"{gor5_key}_fold{fold+1}_detailed.txt"
             subprocess.run([
@@ -187,18 +194,16 @@ for fold in range(k):
 print("\n=== All folds completed ===\n")
 
 # ---- Durchschnittswerte über alle 5 Folds ----
+keys = ["Q3", "H", "E", "C", "SOV", "SOV_H", "SOV_E", "SOV_C"]
+
 print("===== FINAL AVERAGE SCORES (5-CV) =====\n")
+print(f"{'Method':<12} {'Q3_overall':<12} {'Q3_H':<8} {'Q3_E':<8} {'Q3_C':<8} {'SOV':<8} {'SOV_H':<8} {'SOV_E':<8} {'SOV_C'}")
+print("-" * 80)
+
 for method, scores_list in all_results.items():
-    keys = ["Q3", "H", "E", "C", "SOV"]
     avg = {}
     for key in keys:
         vals = [s[key] for s in scores_list if key in s]
         avg[key] = sum(vals) / len(vals) if vals else float('nan')
 
-    print(f"METHOD: {method}")
-    print(f"  Q3 overall : {avg['Q3']:.3f}")
-    print(f"  Q3_H       : {avg['H']:.3f}")
-    print(f"  Q3_E       : {avg['E']:.3f}")
-    print(f"  Q3_C       : {avg['C']:.3f}")
-    print(f"  SOV        : {avg['SOV']:.3f}")
-    print("---------------")
+    print(f"{method:<12} {avg['Q3']:<12.3f} {avg['H']:<8.3f} {avg['E']:<8.3f} {avg['C']:<8.3f} {avg['SOV']:<8.3f} {avg['SOV_H']:<8.3f} {avg['SOV_E']:<8.3f} {avg['SOV_C']:.3f}")
