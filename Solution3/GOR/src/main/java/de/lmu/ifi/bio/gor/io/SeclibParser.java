@@ -18,7 +18,8 @@ public class SeclibParser {
         List<Protein> proteinList = new ArrayList<>();
         File file = new File(filePath);
 
-        try (BufferedReader br = new BufferedReader(new FileReader(filePath))) {            String line;
+        try (BufferedReader br = new BufferedReader(new FileReader(filePath))) {
+            String line;
             String id = null;
             String as = null;
             String ss = null;
