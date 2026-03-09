@@ -10,36 +10,23 @@ public class TestSetCreator {
 
     public static void main(String[] args) throws Exception {
 
-        // 1. Pfade definieren (Passe diese ggf. an deine Ordnerstruktur an)
         String trainingPath = "C:/Users/gross/IdeaProjects/progprakt-17/tools/CB513DSSP.db";
         String inputPath = "C:/Users/gross/IdeaProjects/progprakt-17/tools/casp_all.seclib";
         String outputPath = "clean_test_casp.db";
 
-        // 2. Daten laden
         List<Protein> trainingSet = SeclibParser.parseSeclib(trainingPath);
         List<Protein> potentialTestSet = SeclibParser.parseSeclib(inputPath);
         List<Protein> cleanTestSet = new ArrayList<>();
-
-        double identityThreshold = 0.3; // 25% Grenze
-        int minLength = 18;             // Mindestlänge für GOR-Kompatibilität
-
-        System.out.println("Starte Filterung...");
-        System.out.println("Trainings-Set (CB513) Größe: " + trainingSet.size());
-        System.out.println("Potential Test-Set Größe: " + potentialTestSet.size());
-        System.out.println("---------------------------------------------------");
+        //grenze und mindestlänge, 0.25 was zu nuedrig
+        double identityThreshold = 0.3;
+        int minLength = 18;
 
         int processedCount = 0;
 
-        // 3. Haupt-Filter-Schleife
         for (Protein testProt : potentialTestSet) {
             processedCount++;
 
-            // Fortschrittsanzeige alle 10 Proteine
-            if (processedCount % 10 == 0 || processedCount == potentialTestSet.size()) {
-                System.out.print("\rVerarbeite Protein " + processedCount + " von " + potentialTestSet.size() + "...");
-            }
-
-            // A. Längen-Filter: Alles unter 30 Aminosäuren fliegt sofort raus
+            // längen filter
             if (testProt.getSequence().length() < minLength) {
                 continue;
             }
@@ -47,7 +34,7 @@ public class TestSetCreator {
             boolean isTooSimilar = false;
             String seqTest = testProt.getSequence();
 
-            // B. Homologie-Check gegen jedes Protein im Trainings-Set
+            //Homologie checken gg training set
             for (Protein trainProt : trainingSet) {
                 double identity = calculateAlignmentIdentity(seqTest, trainProt.getSequence());
 
@@ -57,16 +44,14 @@ public class TestSetCreator {
                 }
             }
 
-            // Wenn kein Protein im Training zu ähnlich war, ab ins Test-Set
+            // wenn kein protein im training zu ähnlich war, ab ins test set
             if (!isTooSimilar) {
                 cleanTestSet.add(testProt);
             }
         }
 
-        System.out.println("\n---------------------------------------------------");
-        System.out.println("Filterung abgeschlossen!");
 
-        // 4. Ergebnis speichern
+        //Ergebnisse speichern
         try (PrintWriter pw = new PrintWriter(outputPath)) {
             for (Protein p : cleanTestSet) {
                 pw.println("> " + p.getId());
@@ -75,14 +60,9 @@ public class TestSetCreator {
                 pw.println();
             }
         }
-
-        System.out.println("Sauberes Test-Set gespeichert in: " + outputPath);
-        System.out.println("Finale Test-Set Größe: " + cleanTestSet.size());
     }
 
-    /**
-     * Berechnet die globale Sequenzidentität mittels Needleman-Wunsch Alignment.
-     */
+   //NW
     private static double calculateAlignmentIdentity(String seq1, String seq2) {
         int n = seq1.length();
         int m = seq2.length();
@@ -102,7 +82,7 @@ public class TestSetCreator {
             }
         }
 
-        // Traceback zur Berechnung der Matches
+        // traceback berechnung matrix
         int matches = 0;
         int alignedLength = 0;
         int i = n, j = m;
@@ -121,7 +101,7 @@ public class TestSetCreator {
             alignedLength++;
         }
 
-        // Identität = Identische Reste / Länge des Alignments
+        // identität = identische reste / länge des alignments
         return (double) matches / alignedLength;
     }
 }
