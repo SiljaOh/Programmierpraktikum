@@ -49,12 +49,15 @@ public class ValidationResult {
    public double getSovE() { return sovE; }
    public double getSovC() { return sovC; }
 
-   //Mean
+   //Mean: Durchschnitt
+   //nur Werte >= 0werden addiert und durch Gesamtanzahl geteilt
    public static double getMean(List<Double> values) {
       return values.stream().filter(d -> d >= 0).mapToDouble(d -> d).average().orElse(0.0);
    }
 
-   //Standard Deviation
+   //Standard Deviation: Standard Abweichung
+   //Wurzel von dem Abstand zum Mittelwert im Quadrat
+   //kleine StdDev: konstante Werte
    public static double getStdDev(List<Double> values, double mean) {
       List<Double> valid = values.stream().filter(d -> d >= 0).toList();
       if (valid.isEmpty()) return 0.0;
@@ -63,17 +66,18 @@ public class ValidationResult {
       return Math.sqrt(temp / valid.size());
    }
 
-   //median = 50% Quantile
+   //median = 50% Quantile (quantile*2), robuster gegen Außreißer
    public static double getMedian(List<Double> values) {
       return getQuantile(values, 0.5);
    }
 
-   //Quantile
+   //Quantile = 25% Quantile : Grenzwert
+   //25% aller Proteine haben einen schlechteren Wert als diesen, 75% einen besseren.
    public static double getQuantile(List<Double> values, double quantile) {
       List<Double> validValues = new ArrayList<>(values.stream().filter(d -> d >= 0).toList());
       if (validValues.isEmpty()) return 0.0;
 
-      Collections.sort(validValues);
+      Collections.sort(validValues); //sortieren!
 
       int index = (int) Math.ceil(quantile * validValues.size()) - 1;
       return validValues.get(Math.max(0, index));

@@ -161,11 +161,17 @@ public class validateGor {
         }
     }
 
+    //Abfangen der -1.0 Fehler von SOV und Qobs --> -
+    //Umformung in 1 Nachkommastelle
     private static String formatScore(double value) {
         if (value < 0) return " - ";
         return String.format(Locale.US, "%5.1f", value);
     }
 
+    //gibt aus: Map<ID, AS+PS>
+    //liesst ein: > 1234
+    //            AS GPK....
+    //            SS CCC....
     private static Map<String, Protein> parsePrd(String path) throws IOException {
         Map<String, Protein> map = new LinkedHashMap<>();
         try (BufferedReader br = new BufferedReader(new FileReader(path))) {

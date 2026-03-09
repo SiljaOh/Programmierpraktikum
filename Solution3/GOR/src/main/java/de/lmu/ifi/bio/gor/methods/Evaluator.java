@@ -7,7 +7,9 @@ import java.util.List;
 
 public class Evaluator {
 
-    //Q3 Total Accuracy
+    //Q3 Total Accuracy: Anteil der AS deren Struktur korrekt vorhergesagt wurde
+    //Problem: ignoriert zusammenhängende Segmente
+    //Vergleiche zb. HHHHHHHH und HHHHCHHH __> sehr hohe Q3 Obwohl Helix unterbrochen wird
     //Q3 = (Anzahl identischer Reste as Pos i) / (Gesamtzahl der Reste) * 100
     public double calculateQ3(String predicition, String reference) {
 
@@ -24,7 +26,7 @@ public class Evaluator {
         return (double) correct / total * 100.0;
     }
 
-    //Qobs für qH , qE , qC
+    //Qobs für qH , qE , qC (Q3 pro Zustand)
     //Wie oft kommt Zustand in SS vor (N) und wie oft in PS (n)
     // qH = n/N * 100
     public double calculateQobs(String prediction, String reference, char state) {
@@ -87,13 +89,6 @@ public class Evaluator {
         return s1.start <= s2.end && s2.start <= s1.end;
     }
 
-    //finde in der Segment Objekt Liste ein Segment dass mit dem Segment s overlapt (isOverlapping)
-    private boolean hasOverlap(Segment s, List<Segment> list) {
-        for (Segment other : list) {
-            if (isOverlapping(s, other)) return true;
-        }
-        return false;
-    }
 
     //minov(s1,s2) = minimum overlap, Schnittmenge
     //Welche AS haben in beiden Segmenten den gleichen Strukturtyp an der gleichen Position
@@ -108,18 +103,26 @@ public class Evaluator {
     }
 
     //delta als realisitscher puffer bei minov um kleine ungenauigkiten nicht so hart
-    // zu bestrafen wie zb. ein Segment das halbiert wurde
+    // zu bestrafen wie zb. ein Segment das halbiert wurde (das muss härter bestraft werden)
+    //kleine Verschiebungen werden dann mehr toleriert
     private double getDelta(Segment s1, Segment s2, double minov, double maxov) {
         // Delta = min[(maxov-minov), minov, len(s1)/2, len(s2)/2]
         double d1 = maxov - minov;
         double d2 = minov;
-        double d3 = s1.length() / 2;
-        double d4 = s2.length() / 2;
+        double d3 = (double) s1.length() / 2;
+        double d4 = (double) s2.length() / 2;
         return Math.min(Math.min(d1, d2), Math.min(d3, d4));
     }
 
     //SOV = Segment Overlap measure
     //basierend auf Strukturblöcken --> Segment Objekten!
+    //basierend auf:
+    //wo beginnen und enden Segmente
+    //wie stark überlappen sie sich
+    //wie groß ist die Abweichung bei den Rändern (Abweichung ist besser als Unterbrechungen!)
+    //Formel: (100/N) * totalSum
+    //mit N (Nominierung) bestraft wenn Segment nicht gefunden oder zerstückelt
+    //und totalSum += ((minov + delta) / maxov) * s1.length()
     public double calculateSOV(String predicition, String reference) {
 
         StringBuilder sbPred = new StringBuilder();
@@ -151,8 +154,10 @@ public class Evaluator {
                 }
 
                 if (overlapsOfS1.isEmpty()) {
+                    //wenn segment verpasst
                     N += s1.length();
                 } else {
+                    //pro Überlappung die referenzlänge
                     N += s1.length() * overlapsOfS1.size();
                 }
 
