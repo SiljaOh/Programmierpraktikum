@@ -1,7 +1,6 @@
 #!/usr/bin/python3
-# Konvertiert CB513.psipred (mehrzeilig, SS) -> validateGor-Format (einzeilig, PS)
-# Usage: python convert_psipred.py <input.psipred> <output.txt>
 
+# Konvertiert CB513.psipred-> validateGor-Format (einzeilig, PS)
 import sys
 
 input_file  = sys.argv[1] if len(sys.argv) > 1 else 'CB513.psipred'
@@ -12,7 +11,10 @@ entries = [e.strip() for e in text.split('\n\n') if e.strip()]
 
 out = []
 for e in entries:
-    id_ = as_ = ss_ = ''
+    id_ = ''
+    as_ = ''
+    ss_ = ''
+
     mode = None
     for line in e.split('\n'):
         if line.startswith('> '):
@@ -31,4 +33,3 @@ for e in entries:
         out.append(f'> {id_}\nAS {as_}\nPS {ss_}')
 
 open(output_file, 'w').write('\n\n'.join(out))
-print(f'Fertig: {len(out)} Proteine -> {output_file}')

@@ -8,7 +8,7 @@ if len(sys.argv) < 2:
     sys.exit(1)
 
 input_path = sys.argv[1]
-# Erstellt den Output-Pfad im gleichen Ordner mit .fasta Endung
+#output path gleiche rordner  mit .fasta
 output_path = os.path.splitext(input_path)[0] + ".fasta"
 
 with open(input_path, 'r') as f_in, open(output_path, 'w') as f_out:
@@ -16,7 +16,6 @@ with open(input_path, 'r') as f_in, open(output_path, 'w') as f_out:
         if line.startswith(">"):
             f_out.write(line)
         elif line.startswith("AS "):
-            # Schneidet "AS " (die ersten 3 Zeichen) ab
+            # Schneidet "AS " ab
             f_out.write(line[3:])
 
-print(f"Fertig! FASTA wurde hier erstellt: {output_path}")

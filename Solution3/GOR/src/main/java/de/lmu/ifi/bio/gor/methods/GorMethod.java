@@ -3,7 +3,6 @@ import de.lmu.ifi.bio.gor.model.Alignment;
 import de.lmu.ifi.bio.gor.model.Protein;
 import de.lmu.ifi.bio.gor.model.GorMatrix;
 
-import javax.sound.midi.Sequence;
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;

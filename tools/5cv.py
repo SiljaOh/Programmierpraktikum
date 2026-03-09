@@ -9,7 +9,7 @@ k = 5
 seclib_file = "CB513DSSP.db"
 alignments_dir = "CB513MultipleAlignments"
 
-# ---- Einlesen Seclib ----
+#seclib rein
 text = Path(seclib_file).read_text().strip()
 entries = text.split("\n\n")
 
@@ -26,19 +26,17 @@ def get_id(entry):
 def seq_len(entry):
     return len(get_seq(entry))
 
-# sortieren nach Länge für gleichmäßige Folds
+#länge sortieren
 entries.sort(key=seq_len)
 
-# Folds erstellen
+#folds
 folds = [[] for _ in range(k)]
 for i, e in enumerate(entries):
     folds[i % k].append(e)
 
-# GOR I-IV: train + predict --seq
-# GOR V:    gleiche Modelle wie I-IV, aber predict --maf (kein --seq laut Spec!)
+
 methods = ["gor1", "gor3", "gor4"]
 
-# ---- Summary Parser ----
 def parse_mean(line):
     m = re.search(r'Mean:\s*([\d.]+)', line, re.IGNORECASE)
     if m:
@@ -97,19 +95,17 @@ def parse_summary_file(summary_file):
 
     return scores
 
-# ---- Ergebnisse speichern ----
 all_results = {}
 
-# ---- 5-Fold Cross Validation ----
 for fold in range(k):
     print(f"\n=== Fold {fold+1} ===")
     test  = folds[fold]
     train = [e for j, f in enumerate(folds) if j != fold for e in f]
 
-    # Trainingsdatei (seclib-Format)
+    #train
     Path("train.db").write_text("\n\n".join(train))
 
-    # Test-FASTA (nur für GOR I-IV)
+    # test gor 1-4
     fasta_lines = []
     for e in test:
         fasta_lines.append(">" + get_id(e))
@@ -117,45 +113,28 @@ for fold in range(k):
     test_fasta_file = f"test_fold{fold+1}.fasta"
     Path(test_fasta_file).write_text("\n".join(fasta_lines))
 
-    # Test-IDs für MAF-Filterung
+    # test id maf filter
     test_ids = [get_id(e) for e in test]
 
     for method in methods:
         model_file = f"{method}_fold{fold+1}.model"
 
-        # ---- Train ----
-        subprocess.run([
-            "java", "-jar", "train.jar",
-            "--db",     "train.db",
-            "--method", method,
-            "--model",  model_file
-        ], check=True)
+        #train
+        subprocess.run(["java", "-jar", "train.jar", "--db", "train.db", "--method", method, "--model", model_file], check=True)
 
-        # ---- Predict GOR I/III/IV (--seq) ----
+        # predict
         pred_file = f"{method}_fold{fold+1}.txt"
-        subprocess.run([
-            "java", "-jar", "predict.jar",
-            "--model",  model_file,
-            "--format", "txt",
-            "--seq",    test_fasta_file
-        ], stdout=open(pred_file, "w"), check=True)
+        subprocess.run(["java", "-jar", "predict.jar", "--model", model_file, "--format", "txt", "--seq", test_fasta_file], stdout=open(pred_file, "w"), check=True)
 
-        # ---- Validate GOR I/III/IV ----
+        #Validate
         summary_file  = f"{method}_fold{fold+1}_summary.txt"
         detailed_file = f"{method}_fold{fold+1}_detailed.txt"
-        subprocess.run([
-            "java", "-jar", "validateGor.jar",
-            "-p", pred_file,
-            "-r", seclib_file,
-            "-s", summary_file,
-            "-d", detailed_file,
-            "-f", "txt"
-        ], check=True)
+        subprocess.run(["java", "-jar", "validateGor.jar", "-p", pred_file, "-r", seclib_file, "-s", summary_file, "-d", detailed_file, "-f", "txt"], check=True)
 
         all_results.setdefault(method, []).append(parse_summary_file(summary_file))
-        print(f"{method} Fold {fold+1} done -> {summary_file}")
 
-        # ---- GOR V (nur wenn Alignments-Ordner existiert) ----
+
+        # GOR 5
         if Path(alignments_dir).exists():
             gor5_key = f"gor5_{method}"
 
@@ -167,36 +146,20 @@ for fold in range(k):
                 if any(tid in aln_file.stem for tid in test_ids):
                     shutil.copy(aln_file, fold_maf_dir)
                     copied += 1
-            print(f"  GOR5: copied {copied} .aln files for {len(test_ids)} test proteins")
 
             pred_file5 = f"{gor5_key}_fold{fold+1}.txt"
-            subprocess.run([
-                "java", "-jar", "predict.jar",
-                "--model",  model_file,
-                "--format", "txt",
-                "--maf",    str(fold_maf_dir)
-            ], stdout=open(pred_file5, "w"), check=True)
+            subprocess.run(["java", "-jar", "predict.jar", "--model",  model_file, "--format", "txt", "--maf", str(fold_maf_dir)], stdout=open(pred_file5, "w"), check=True)
 
             summary_file5  = f"{gor5_key}_fold{fold+1}_summary.txt"
             detailed_file5 = f"{gor5_key}_fold{fold+1}_detailed.txt"
-            subprocess.run([
-                "java", "-jar", "validateGor.jar",
-                "-p", pred_file5,
-                "-r", seclib_file,
-                "-s", summary_file5,
-                "-d", detailed_file5,
-                "-f", "txt"
-            ], check=True)
+            subprocess.run(["java", "-jar", "validateGor.jar", "-p", pred_file5, "-r", seclib_file, "-s", summary_file5, "-d", detailed_file5, "-f", "txt"], check=True)
 
             all_results.setdefault(gor5_key, []).append(parse_summary_file(summary_file5))
-            print(f"{gor5_key} Fold {fold+1} done -> {summary_file5}")
 
-print("\n=== All folds completed ===\n")
 
-# ---- Durchschnittswerte über alle 5 Folds ----
+#durchschnittswerte über alle folds
 keys = ["Q3", "H", "E", "C", "SOV", "SOV_H", "SOV_E", "SOV_C"]
 
-print("===== FINAL AVERAGE SCORES (5-CV) =====\n")
 print(f"{'Method':<12} {'Q3_overall':<12} {'Q3_H':<8} {'Q3_E':<8} {'Q3_C':<8} {'SOV':<8} {'SOV_H':<8} {'SOV_E':<8} {'SOV_C'}")
 print("-" * 80)
 
