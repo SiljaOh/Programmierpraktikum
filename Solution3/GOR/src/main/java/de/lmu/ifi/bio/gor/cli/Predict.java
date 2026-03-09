@@ -23,6 +23,10 @@ public class Predict {
         String format = "txt";
         boolean probabilities = false;
         String alnPath = null;
+        //für parameter tuning:
+        double pseudoCount = 0.8; //default parameter nach optimization verändern!!!!!!!
+        int minH = 4;
+        int minE = 2;
 
         //jedes Argument durch gehen
         for (int i = 0; i < args.length; i++) {
@@ -41,6 +45,12 @@ public class Predict {
                     break;
                 case "--maf":
                     if (i + 1 < args.length) alnPath = args[++i];
+                    break;
+                case "--minH":
+                    if (i + 1 < args.length) minH = Integer.parseInt(args[++i]);
+                    break;
+                case "--minE":
+                    if (i + 1 < args.length) minE = Integer.parseInt(args[++i]);
                     break;
                 //wenn nichts angegeben
                 default:
@@ -74,6 +84,9 @@ public class Predict {
 
 
         gor.getMatrix().loadModel(modelPath);
+        //bonus parameter tuning
+        gor.setMinH(minH);
+        gor.setMinE(minE);
         //Bonus probs
         gor.setUseProbability(probabilities);
         gor.getMatrix().setUseProbability(probabilities);
