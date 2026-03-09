@@ -19,6 +19,8 @@ public abstract class GorMethod {
     }
 
     protected boolean useProbability = false;
+    protected boolean showScores = false;
+
     protected int minH = 4; // postProcess: minimum helix length
     protected int minE = 2; // postProcess: minimum strand length
     protected double pseudo = 0.8; // Standardwert
@@ -39,6 +41,10 @@ public abstract class GorMethod {
 
     public void setUseProbability(boolean useProbability) {
         this.useProbability = useProbability;
+    }
+
+    public void setShowScores(boolean showScores) {
+        this.showScores = showScores;
     }
 
     public static List<Protein> readFasta(String filePath) throws IOException {

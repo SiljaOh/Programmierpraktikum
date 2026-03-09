@@ -18,6 +18,7 @@ public class GorMatrix {
 
     protected boolean useProbability = false;
 
+
     protected double pseudoCount=0.8;// default pseudocount
 
 

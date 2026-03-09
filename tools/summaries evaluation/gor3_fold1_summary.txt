@@ -1,0 +1,16 @@
+Statistic for protein validation
+
+Number of Proteins:           103
+Mean Protein Length:          163.0
+Sum of Protein Length:        16786
+Sum of Predicted Positions:   15138
+
+q3      : Mean:   59.1   Dev:   10.5   Min:   25.0   Max:  100.0   Median:   59.0   Quantil_25:   53.7   Quantil_75:   65.0   Quantil_5:   40.7   Quantil_95:   74.5
+qObs_H  : Mean:   43.0   Dev:   26.1   Min:    0.0   Max:  100.0   Median:   43.9   Quantil_25:   26.9   Quantil_75:   59.3   Quantil_5:    0.0   Quantil_95:   83.3
+qObs_E  : Mean:   39.3   Dev:   21.5   Min:    0.0   Max:  100.0   Median:   41.0   Quantil_25:   26.7   Quantil_75:   51.2   Quantil_5:    0.0   Quantil_95:   68.2
+qObs_C  : Mean:   76.9   Dev:   12.1   Min:   35.0   Max:  100.0   Median:   78.3   Quantil_25:   70.8   Quantil_75:   84.6   Quantil_5:   57.9   Quantil_95:  100.0
+
+SOV     : Mean:   54.7   Dev:   14.6   Min:   15.0   Max:  100.0   Median:   53.6   Quantil_25:   46.8   Quantil_75:   64.1   Quantil_5:   31.5   Quantil_95:   75.7
+SOV_H   : Mean:   48.0   Dev:   28.2   Min:    0.0   Max:  100.0   Median:   52.0   Quantil_25:   29.1   Quantil_75:   68.0   Quantil_5:    0.0   Quantil_95:   86.4
+SOV_E   : Mean:   42.5   Dev:   22.0   Min:    0.0   Max:   82.3   Median:   46.7   Quantil_25:   30.2   Quantil_75:   59.0   Quantil_5:    0.0   Quantil_95:   73.7
+SOV_C   : Mean:   58.5   Dev:   15.1   Min:   21.1   Max:  100.0   Median:   58.7   Quantil_25:   47.6   Quantil_75:   69.2   Quantil_5:   36.5   Quantil_95:   86.2

@@ -24,6 +24,7 @@ public class Predict {
         //Default
         String format = "txt";
         boolean probabilities = false;
+        boolean showScores = false;
         String alnPath = null;
         //für parameter tuning:
         double pseudoCount = 0.8;
@@ -45,6 +46,9 @@ public class Predict {
                 case "--probabilities":
                     probabilities = true;
                     break;
+                case "--show-scores":
+                    showScores = true;
+                    break;
                 case "--maf":
                     if (i + 1 < args.length) alnPath = args[++i];
                     break;
@@ -60,7 +64,7 @@ public class Predict {
                 //wenn nichts angegeben
                 default:
                     System.err.println("Unknown argument: " + args[i]);
-                    System.err.println("Usage: java -jar predict.jar [--probabilities]\n" +
+                    System.err.println("Usage: java -jar predict.jar [--probabilities] [--show-scores]\n" +
                             "--model <model file> --format <txt|html>\n" +
                             "{--seq <fasta file>|--maf <multiple-alignment-folder>}");
                     System.exit(1);
@@ -68,7 +72,7 @@ public class Predict {
         }
         //Pflichtangaben
         if (modelPath == null || (seqPath == null && alnPath == null)) {
-            System.err.println("Usage: java -jar predict.jar [--probabilities]\n" +
+            System.err.println("Usage: java -jar predict.jar [--probabilities][--show-scores]\n" +
                     "--model <model file> --format <txt|html>\n" +
                     "{--seq <fasta file>|--maf <multiple-alignment-folder>}");            System.exit(1);
         }
@@ -106,6 +110,7 @@ public class Predict {
         //Bonus probs
         gor.setUseProbability(probabilities);
         gor.getMatrix().setUseProbability(probabilities);
+        gor.setShowScores(showScores);
 
         //für html
         if ("html".equalsIgnoreCase(format)) {
@@ -121,10 +126,17 @@ public class Predict {
                 }
                 String result = gor.predict(p.getSequence());
 
-                //BONUS postprocessing
-                String processedresult = gor.postProcess(result);
+                //BONUS postprocessing nur wenn showScores aus
+                if (!showScores) {
+                    String processedresult = gor.postProcess(result);
+                    printResult(p.getId(), p.getSequence(), processedresult, probabilities, showScores, gor, format);
+                }
+                else {
+                    printResult(p.getId(), p.getSequence(), result, probabilities, showScores, gor, format);
+                }
+
                 //JMOL etc auf website iengebaut!!
-                printResult(p.getId(), p.getSequence(), processedresult, probabilities, gor, format);
+
 
 
             }
@@ -145,9 +157,13 @@ public class Predict {
                     String result = gor.predictGor5(alignment);
 
                     //BONUS postprocessing
-                    String processedresult = gor.postProcess(result);
-
-                    printResult(alignment.getId(), alignment.getReferenceSeq(), processedresult, probabilities, gor, format);
+                    if (!showScores) {
+                        String processedresult = gor.postProcess(result);
+                        printResult(alignment.getId(), alignment.getReferenceSeq(), processedresult, probabilities, showScores, gor, format);
+                    }
+                    else {
+                        printResult(alignment.getId(), alignment.getReferenceSeq(), result, probabilities, showScores, gor, format);
+                    }
                 }
             }
         }
@@ -157,7 +173,7 @@ public class Predict {
     }
 
     //output funktion
-    private static void printResult(String id, String as, String ps, boolean probabilities, GorMethod gor, String format) {
+    private static void printResult(String id, String as, String ps, boolean useProbabilities, boolean showScores, GorMethod gor, String format) {
         if ("html".equalsIgnoreCase(format)) {
             System.out.println("<div style='margin-bottom:20px; border-left: 4px solid #0d6b5c; padding-left:10px;'>");
             System.out.println("  <div>&gt; " + id + "</div>");
@@ -171,8 +187,8 @@ public class Predict {
             }
             System.out.println("</div>");
 
-            if (probabilities) {
-                printProbabilitiesHtml(as, gor);
+            if (showScores) {
+                printProbabilitiesHtml(as, gor, useProbabilities);
             }
             System.out.println("</div>");
         } else {
@@ -180,16 +196,22 @@ public class Predict {
             System.out.println("> " + id);
             System.out.println("AS " + as);
             System.out.println("PS " + ps);
-            if (probabilities) {
-                printProbabilities(as, gor);
+            if (showScores) {
+                printProbabilities(as, gor, useProbabilities);
             }
             System.out.println();
         }
     }
 
-    private static void printProbabilities(String sequence, GorMethod gor) {
+    private static void printProbabilities(String sequence, GorMethod gor, boolean useProbabilities) {
         double[][] raw = gor.getScores(sequence);
-        String[] labels = {"PH", "PE", "PC"};
+        String[] labels;
+        if (useProbabilities) {
+            labels = new String[]{"PH", "PE", "PC"};
+        }
+        else {
+            labels = new String[]{"IH", "IE", "IC"};
+        }
         int m = 8;
         //jeder zustand
         for (int s = 0; s < 3; s++) {
@@ -209,9 +231,15 @@ public class Predict {
         }
     }
 
-    private static void printProbabilitiesHtml(String sequence, GorMethod gor) {
+    private static void printProbabilitiesHtml(String sequence, GorMethod gor, boolean useProbabilities) {
         double[][] raw = gor.getScores(sequence);
-        String[] labels = {"PH", "PE", "PC"};
+        String[] labels;
+        if (useProbabilities) {
+            labels = new String[]{"PH", "PE", "PC"};
+        }
+        else {
+            labels = new String[]{"IH", "IE", "IC"};
+        }
         //H ist rot, E ist blau, C ist grün
         String[] colors = {"#e63946", "#457b9d", "#2a9d8f"};
         int m = 8;
