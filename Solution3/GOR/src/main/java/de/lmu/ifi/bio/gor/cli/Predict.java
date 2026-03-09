@@ -218,9 +218,12 @@ public class Predict {
             StringBuilder sb = new StringBuilder(labels[s] + " --------");
             //ohne ränder
             for (int i = m; i < raw.length - m; i++) {
-
+                //softmax
+                //höchster wert, höher zu 1 noiedriger zu 0
                 double max = Math.max(raw[i][0], Math.max(raw[i][1], raw[i][2]));
+                //overflow verhindern grösste 1 rest niedriger
                 double[] exp = {Math.exp(raw[i][0]-max), Math.exp(raw[i][1]-max), Math.exp(raw[i][2]-max)};
+                //alle 3 summiert gerundet 1-3 also
                 double sum = exp[0] + exp[1] + exp[2];
 
                 sb.append((int) Math.min(9, Math.round(exp[s] / sum * 10)));
@@ -249,6 +252,7 @@ public class Predict {
                 double max = Math.max(raw[i][0], Math.max(raw[i][1], raw[i][2]));
                 double[] exp = {Math.exp(raw[i][0]-max), Math.exp(raw[i][1]-max), Math.exp(raw[i][2]-max)};
                 double sum = exp[0] + exp[1] + exp[2];
+
                 int val = (int) Math.min(9, Math.round(exp[s] / sum * 10));
 
                 if (val > 9) val = 9;

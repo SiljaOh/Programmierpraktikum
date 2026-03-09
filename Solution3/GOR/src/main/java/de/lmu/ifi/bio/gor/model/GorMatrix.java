@@ -207,10 +207,14 @@ public class GorMatrix {
                 char aa = window.charAt(p);
                 int aaIdx = getAaIndex(aa);
                 if (aaIdx == -1) continue;
+                //für window alle berechenn, I roher score, P 0-1
                 if (useProbability) {
                     double iScore = scores[s][p][aaIdx];
+                    // e hoch x / 1 plus e hoch x
+                    //zw 0 und 1
                     totals[s] += Math.exp(iScore) / (1.0 + Math.exp(iScore));
                 } else {
+                    //zb grösster wert 1 insg 1.7 = 0.588
                     totals[s] += scores[s][p][aaIdx];
                 }
             }
