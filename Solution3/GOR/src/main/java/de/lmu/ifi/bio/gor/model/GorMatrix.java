@@ -20,6 +20,7 @@ public class GorMatrix {
 
     protected double pseudoCount=0.8;// default pseudocount
 
+
     public void setUseProbability(boolean useProbability) {
         this.useProbability = useProbability;
     }
@@ -205,14 +206,13 @@ public class GorMatrix {
                 char aa = window.charAt(p);
                 int aaIdx = getAaIndex(aa);
                 if (aaIdx == -1) continue;
-                totals[s] += scores[s][p][aaIdx];
+                if (useProbability) {
+                    double iScore = scores[s][p][aaIdx];
+                    totals[s] += Math.exp(iScore) / (1.0 + Math.exp(iScore));
+                } else {
+                    totals[s] += scores[s][p][aaIdx];
+                }
             }
-        }
-
-        if (useProbability) {
-            totals[0] = 1.0 / (1.0 + Math.exp(-totals[0])); // P(H)
-            totals[1] = 1.0 / (1.0 + Math.exp(-totals[1])); // P(E)
-            totals[2] = 1.0 / (1.0 + Math.exp(-totals[2])); // P(C)
         }
         return totals;
     }

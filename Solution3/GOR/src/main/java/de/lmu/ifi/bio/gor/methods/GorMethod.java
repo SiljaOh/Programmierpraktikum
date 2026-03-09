@@ -13,18 +13,23 @@ import java.util.List;
 public abstract class GorMethod {
 
     protected GorMatrix matrix;
+
     public GorMatrix getMatrix() {
         return this.matrix;
     }
 
     protected boolean useProbability = false;
-    protected boolean showScores = false;
     protected int minH = 4; // postProcess: minimum helix length
     protected int minE = 2; // postProcess: minimum strand length
     protected double pseudo = 0.8; // Standardwert
 
-    public void setMinH(int minH) { this.minH = minH; }
-    public void setMinE(int minE) { this.minE = minE; }
+    public void setMinH(int minH) {
+        this.minH = minH;
+    }
+
+    public void setMinE(int minE) {
+        this.minE = minE;
+    }
     public void setPseudo(double pseudo) {
         this.pseudo = pseudo;
         if (this.matrix != null) {
@@ -34,10 +39,6 @@ public abstract class GorMethod {
 
     public void setUseProbability(boolean useProbability) {
         this.useProbability = useProbability;
-    }
-
-    public void setShowScores(boolean showScores) {
-        this.showScores = showScores;
     }
 
     public static List<Protein> readFasta(String filePath) throws IOException {
@@ -73,6 +74,7 @@ public abstract class GorMethod {
         }
         return proteins;
     }
+
     public static String whichMethod(String modelPath) throws IOException {
         // Header um Methode zu bestimmen
         try (BufferedReader reader = new BufferedReader(new FileReader(modelPath))) {
@@ -100,6 +102,7 @@ public abstract class GorMethod {
     }
 
     public abstract void train(List<Protein> data);
+
     public abstract String predict(String sequence);
 
     private String getPaddedWindow(String seq, int center) {
@@ -111,6 +114,7 @@ public abstract class GorMethod {
         }
         return sb.toString();
     }
+
     public abstract void handleWindow(String window, int position, char target, boolean isTraining, StringBuilder result);
 
     protected String slidingWindow(Protein protein, boolean isTraining) {
@@ -200,7 +204,8 @@ public abstract class GorMethod {
                 //haupt seq zählen
                 if (querySeq.charAt(i) == '-') {
                     seqPos++;
-                    continue; }
+                    continue;
+                }
 
                 //Score dieser Sequenz an dieser Position zur Summe addieren
                 sumH[i] += readySeq[seqPos][0];
@@ -217,11 +222,9 @@ public abstract class GorMethod {
             //für jede posi in sequenz höchster score
             if (sumH[i] >= sumE[i] && sumH[i] >= sumC[i]) {
                 result.append('H');
-            }
-            else if (sumE[i] >= sumH[i] && sumE[i] >= sumC[i]) {
+            } else if (sumE[i] >= sumH[i] && sumE[i] >= sumC[i]) {
                 result.append('E');
-            }
-            else result.append('C');
+            } else result.append('C');
         }
         // Ränder wie in slidingWindow auffüllen
         int m = 8;
@@ -234,8 +237,11 @@ public abstract class GorMethod {
 
 
     //BONUS: postprocess, noch mehr ausprobieren!
-    //mind 4 H, 2 E, C nur zwischne E und H
+//BONUS: postprocess, noch mehr ausprobieren!
+//mind 4 H, 2 E, C nur zwischne E und H
     public String postProcess(String prediction) {
+        int minH = 4;
+        int minE = 2;
         // minH and minE are instance variables (default 4 and 2)
         int n = prediction.length();
         char[] processed = prediction.toCharArray();
@@ -281,3 +287,4 @@ public abstract class GorMethod {
         return new String(processed);
     }
 }
+
