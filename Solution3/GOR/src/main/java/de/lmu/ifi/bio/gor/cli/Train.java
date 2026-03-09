@@ -17,6 +17,10 @@ public class Train {
         String trainPath = null; // path to seclib training file
         String methodSelection = "1"; // <gor1|gor3|gor4>
         String modelOutputPath = null; //model file output
+        //für parameter tuning:
+        double pseudoCount = 0.8; //default parameter nach optimization verändern!!!!!!!
+        int minH = 4;
+        int minE = 2;
 
 
         for (int i = 0; i < args.length; i++) {
@@ -30,6 +34,16 @@ public class Train {
                 case "--model":
                     if (i + 1 < args.length) modelOutputPath = args[++i];
                     break;
+                case "--pseudo":
+                    if (i + 1 < args.length) pseudoCount = Double.parseDouble(args[++i]);
+                    break;
+                case "--minH":
+                    if (i + 1 < args.length) minH = Integer.parseInt(args[++i]);
+                    break;
+                case "--minE":
+                    if (i + 1 < args.length) minE = Integer.parseInt(args[++i]);
+                    break;
+
                 default:
                     System.err.println("Unknown argument: " + args[i]);
                     System.err.println("Usage: java -jar train.jar --db <file> --method <gor1|gor3|gor4> --model <output>");
@@ -55,6 +69,11 @@ public class Train {
                 gor = new Gor1();
                 break;
         }
+        //parameter setzten
+        gor.getMatrix().setPseudoCount(pseudoCount);
+        gor.setMinH(minH);
+        gor.setMinE(minE);
+
 
         //seclib
         List<Protein> data = SeclibParser.parseSeclib(trainPath);

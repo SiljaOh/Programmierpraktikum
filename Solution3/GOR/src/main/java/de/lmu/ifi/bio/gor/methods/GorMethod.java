@@ -17,6 +17,11 @@ public abstract class GorMethod {
     }
 
     protected boolean useProbability = false;
+    protected int minH = 4; // postProcess: minimum helix length
+    protected int minE = 2; // postProcess: minimum strand length
+
+    public void setMinH(int minH) { this.minH = minH; }
+    public void setMinE(int minE) { this.minE = minE; }
 
     public void setUseProbability(boolean useProbability) {
         this.useProbability = useProbability;
@@ -218,8 +223,7 @@ public abstract class GorMethod {
     //BONUS: postprocess, noch mehr ausprobieren!
     //mind 4 H, 2 E, C nur zwischne E und H
     public String postProcess(String prediction) {
-        int minH = 4;
-        int minE = 2;
+        // minH and minE are instance variables (default 4 and 2)
         int n = prediction.length();
         char[] processed = prediction.toCharArray();
 
