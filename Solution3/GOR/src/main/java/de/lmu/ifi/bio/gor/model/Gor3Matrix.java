@@ -5,6 +5,10 @@ import java.io.*;
 
 public class Gor3Matrix extends GorMatrix {
 
+    //nutzt Paar-Korrelation
+    //Schaut auf alle Nachbarn innerhalb des 17er Fensters
+    //aber immer nur auf einen!
+    //erkennt dass sich Nachbarn gegenseitig in einer Struktur stabilisieren
     protected final int[][][][] counts3 = new int[3][17][20][20];
     protected final double[][][][] scores3 = new double[3][17][20][20];
     //Nach optimization den besten als default setzten!

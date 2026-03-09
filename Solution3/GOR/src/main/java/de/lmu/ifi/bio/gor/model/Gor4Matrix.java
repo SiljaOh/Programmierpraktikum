@@ -4,9 +4,13 @@ import java.io.*;
 
 public class Gor4Matrix extends Gor3Matrix {
 
+    //Berücksichtigt nacheinander ALLE Nachbarn innerhalb des Fensters (8 links und 8 rechts)
+    //speichert immer 2 Nachbarn gleichzeitig egal wo sie im Fenster stehen (pos wird auch gespeichert)
     //counts[Zustand][Zentrum AS][erster Nachbar][erste nachbar posi][zweiter nachbar][zweiter nachbar posi]
     protected final int[][][][][][] counts4 = new int[3][20][20][17][20][17];
+    //liefert Triplett Information
     protected final double[][][][][][] scores4 = new double[3][20][20][17][20][17];
+    //liefert Paar Informationen wie Gor3 --> Normalisierung
     protected final double[][][][] scores4D = new double[3][17][20][20];
     //nach optimization default of optimum setzten!
     public Gor4Matrix() {} // GOR4 default
