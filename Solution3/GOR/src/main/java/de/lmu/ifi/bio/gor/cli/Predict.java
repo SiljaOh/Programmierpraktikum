@@ -56,6 +56,9 @@ public class Predict {
                 case "--minE":
                     if (i + 1 < args.length) minE = Integer.parseInt(args[++i]);
                     break;
+                case "--pseudo":
+                    if (i + 1 < args.length) pseudoCount = Double.parseDouble(args[++i]);
+                    break;
                 //wenn nichts angegeben
                 default:
                     System.err.println("Unknown argument: " + args[i]);
