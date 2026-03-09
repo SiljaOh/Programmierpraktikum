@@ -64,7 +64,7 @@ public class Predict {
                 //wenn nichts angegeben
                 default:
                     System.err.println("Unknown argument: " + args[i]);
-                    System.err.println("Usage: java -jar predict.jar [--probabilities]\n" +
+                    System.err.println("Usage: java -jar predict.jar [--probabilities] [--show-scores]\n" +
                             "--model <model file> --format <txt|html>\n" +
                             "{--seq <fasta file>|--maf <multiple-alignment-folder>}");
                     System.exit(1);
@@ -72,7 +72,7 @@ public class Predict {
         }
         //Pflichtangaben
         if (modelPath == null || (seqPath == null && alnPath == null)) {
-            System.err.println("Usage: java -jar predict.jar [--probabilities] [--show-scores] \n" +
+            System.err.println("Usage: java -jar predict.jar [--probabilities] [--show-scores]\n" +
                     "--model <model file> --format <txt|html>\n" +
                     "{--seq <fasta file>|--maf <multiple-alignment-folder>}");
             System.exit(1);
