@@ -34,7 +34,7 @@ public class SeclibParser {
                     if (id != null && as != null && ss != null) {
                         proteinList.add(new Protein(id, as, ss));
                     }
-                    // Reset für das neue Protein
+                    // Reset für das neue protein
                     id = trimmedLine.substring(2);
                     as = null;
                     ss = null;

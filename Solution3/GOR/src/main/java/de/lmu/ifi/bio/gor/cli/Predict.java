@@ -94,11 +94,7 @@ public class Predict {
 
                 //BONUS postprocessing
                 String processedresult = gor.postProcess(result);
-
-                //validation für mehrere sequenzen/proteine usw und dann anzeigen
-//                JmolVisualizer.addProtein(p.getId(), p.getSequence(), "", processedresult);
-//                JmolVisualizer.showAll();
-
+                //JMOL etc auf website iengebaut!!
                 printResult(p.getId(), p.getSequence(), processedresult, probabilities, gor, format);
 
 
@@ -121,10 +117,6 @@ public class Predict {
 
                     //BONUS postprocessing
                     String processedresult = gor.postProcess(result);
-
-//                    String realSS = alignment.getReferenceSS();
-//                    JmolVisualizer.addProtein(alignment.getId(), alignment.getReferenceSeq(), realSS, processedresult);
-//                    JmolVisualizer.showAll();
 
                     printResult(alignment.getId(), alignment.getReferenceSeq(), processedresult, probabilities, gor, format);
                 }
@@ -155,7 +147,7 @@ public class Predict {
             }
             System.out.println("</div>");
         } else {
-            // Klassischer TXT Output
+            // txt Output
             System.out.println("> " + id);
             System.out.println("AS " + as);
             System.out.println("PS " + ps);

@@ -118,8 +118,6 @@ public class Evaluator {
         return Math.min(Math.min(d1, d2), Math.min(d3, d4));
     }
 
-    //---------SOV Hilfsmethoden-------------
-
     //SOV = Segment Overlap measure
     //basierend auf Strukturblöcken --> Segment Objekten!
     public double calculateSOV(String predicition, String reference) {
