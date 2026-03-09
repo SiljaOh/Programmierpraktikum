@@ -218,13 +218,12 @@ public class Predict {
             StringBuilder sb = new StringBuilder(labels[s] + " --------");
             //ohne ränder
             for (int i = m; i < raw.length - m; i++) {
-                //softmax auf alle 3 scores -> 0-1 wslk aus log odds wert, alle pos
-                double[] exp = {Math.exp(raw[i][0]), Math.exp(raw[i][1]), Math.exp(raw[i][2])};
-                //alle werte
+
+                double max = Math.max(raw[i][0], Math.max(raw[i][1], raw[i][2]));
+                double[] exp = {Math.exp(raw[i][0]-max), Math.exp(raw[i][1]-max), Math.exp(raw[i][2]-max)};
                 double sum = exp[0] + exp[1] + exp[2];
-                // P(S|a) = exp(score_s) / summe, mal 10 und auf ganze zahl runden → 0-9
-                //runden!
-                sb.append((int) Math.round(exp[s] / sum * 10));
+
+                sb.append((int) Math.min(9, Math.round(exp[s] / sum * 10)));
             }
             sb.append("--------");
             System.out.println(sb);
@@ -246,9 +245,12 @@ public class Predict {
         for (int s = 0; s < 3; s++) {
             System.out.print("  <div>" + labels[s] + " --------");
             for (int i = m; i < raw.length - m; i++) {
-                double[] exp = {Math.exp(raw[i][0]), Math.exp(raw[i][1]), Math.exp(raw[i][2])};
+
+                double max = Math.max(raw[i][0], Math.max(raw[i][1], raw[i][2]));
+                double[] exp = {Math.exp(raw[i][0]-max), Math.exp(raw[i][1]-max), Math.exp(raw[i][2]-max)};
                 double sum = exp[0] + exp[1] + exp[2];
-                int val = (int) Math.round(exp[s] / sum * 10);
+                int val = (int) Math.min(9, Math.round(exp[s] / sum * 10));
+
                 if (val > 9) val = 9;
                 double opacity = 0.15 + (val / 9.0) * 0.85;
                 System.out.print(
