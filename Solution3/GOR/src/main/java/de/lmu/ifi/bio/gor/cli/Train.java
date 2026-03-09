@@ -70,7 +70,7 @@ public class Train {
                 break;
         }
         //parameter setzten
-        gor.getMatrix().setPseudoCount(pseudoCount);
+        gor.setPseudo(pseudoCount);
         gor.setMinH(minH);
         gor.setMinE(minE);
 

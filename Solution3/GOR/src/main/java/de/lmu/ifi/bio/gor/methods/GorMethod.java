@@ -3,6 +3,7 @@ import de.lmu.ifi.bio.gor.model.Alignment;
 import de.lmu.ifi.bio.gor.model.Protein;
 import de.lmu.ifi.bio.gor.model.GorMatrix;
 
+import javax.sound.midi.Sequence;
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
@@ -20,9 +21,16 @@ public abstract class GorMethod {
     protected boolean showScores = false;
     protected int minH = 4; // postProcess: minimum helix length
     protected int minE = 2; // postProcess: minimum strand length
+    protected double pseudo = 0.8; // Standardwert
 
     public void setMinH(int minH) { this.minH = minH; }
     public void setMinE(int minE) { this.minE = minE; }
+    public void setPseudo(double pseudo) {
+        this.pseudo = pseudo;
+        if (this.matrix != null) {
+            this.matrix.setPseudoCount(pseudo);
+        }
+    }
 
     public void setUseProbability(boolean useProbability) {
         this.useProbability = useProbability;

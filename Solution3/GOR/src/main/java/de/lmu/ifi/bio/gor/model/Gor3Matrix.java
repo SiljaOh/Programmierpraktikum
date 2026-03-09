@@ -8,7 +8,7 @@ public class Gor3Matrix extends GorMatrix {
     protected final int[][][][] counts3 = new int[3][17][20][20];
     protected final double[][][][] scores3 = new double[3][17][20][20];
     //Nach optimization den besten als default setzten!
-    public Gor3Matrix() { this.pseudoCount = 0.8; } // GOR3 default
+    public Gor3Matrix() {} // GOR3 default
 
     //gor3 hat zusätzlcih; Wie oft tritt Zentrum X in Zustand S auf?
     //P(S,X)
@@ -129,9 +129,9 @@ public class Gor3Matrix extends GorMatrix {
 
                         // log( f(S, a_j, a_{j+k}) / f(¬S, a_j, a_{j+k}) )
                         //wie oft zentrum c nachbar a paar an posi p zusand s
-                        double fSA = counts3[s][p][c][a] + pseudoCount;
+                        double fSA = counts3[s][p][c][a] + this.pseudoCount;
                         //wie oft gleiches par anderer zustand
-                        double f_SA = pseudoCount * 2;
+                        double f_SA = this.pseudoCount * 2;
                         for (int o = 0; o < 3; o++) {
                             if (o != s) {
                                 f_SA += counts3[o][p][c][a];
@@ -139,9 +139,9 @@ public class Gor3Matrix extends GorMatrix {
                         }
                         // log( f(¬S, a_j) / f(S, a_j) )
                         //zentrum as c alleine in zustand
-                        double fSX = totalCountsSX[s][c] + pseudoCount;
+                        double fSX = totalCountsSX[s][c] + this.pseudoCount;
                         //wie oft in anderem
-                        double f_SX = pseudoCount * 2;
+                        double f_SX = this.pseudoCount * 2;
                         for (int o = 0; o < 3; o++) {
                             if (o != s) f_SX += totalCountsSX[o][c];  // f(¬S, a_j)
                         }

@@ -2,6 +2,8 @@ package de.lmu.ifi.bio.gor.cli;
 
 import de.lmu.ifi.bio.gor.methods.*;
 import de.lmu.ifi.bio.gor.model.Alignment;
+import de.lmu.ifi.bio.gor.model.Gor3Matrix;
+import de.lmu.ifi.bio.gor.model.Gor4Matrix;
 import de.lmu.ifi.bio.gor.model.Protein;
 import de.lmu.ifi.bio.gor.io.AlnParser;
 
@@ -25,7 +27,7 @@ public class Predict {
         boolean showScores = false;
         String alnPath = null;
         //für parameter tuning:
-        double pseudoCount = 0.8; //default parameter nach optimization verändern!!!!!!!
+        double pseudoCount = 0.8;
         int minH = 4;
         int minE = 2;
 
@@ -91,6 +93,15 @@ public class Predict {
         }
 
         gor.getMatrix().loadModel(modelPath);
+
+        gor.setPseudo(pseudoCount);
+
+        if (gor instanceof Gor3) {
+            ((Gor3Matrix) gor.getMatrix()).calculateScores3();
+        } else if (gor instanceof Gor4) {
+            ((Gor4Matrix) gor.getMatrix()).calculateScores4();
+        }
+
         //bonus parameter tuning
         gor.setMinH(minH);
         gor.setMinE(minE);

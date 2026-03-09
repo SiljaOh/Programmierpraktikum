@@ -9,7 +9,7 @@ public class Gor4Matrix extends Gor3Matrix {
     protected final double[][][][][][] scores4 = new double[3][20][20][17][20][17];
     protected final double[][][][] scores4D = new double[3][17][20][20];
     //nach optimization default of optimum setzten!
-    public Gor4Matrix() { this.pseudoCount = 0.8; } // GOR4 default
+    public Gor4Matrix() {} // GOR4 default
 
     //train
     public void addCount4(char state, char centralAA, char neighborOneAA, int neighborOnePos, char neighborTwoAA, int neighborTwoPos) {
@@ -195,9 +195,9 @@ public class Gor4Matrix extends Gor3Matrix {
                                     continue;
                                 }
                                 //der zustand mit dem paar für den pseudocount
-                                double fS = counts4[s][z][n1][p1][n2][p2] + pseudoCount;
+                                double fS = counts4[s][z][n1][p1][n2][p2] + this.pseudoCount;
                                 //2 mal für 2 zustände
-                                double f_S = pseudoCount * 2;
+                                double f_S = this.pseudoCount * 2;
                                 for (int o = 0; o < 3; o++) {
                                     if (o != s) {
                                         //counts der anderen zustände
@@ -220,8 +220,8 @@ public class Gor4Matrix extends Gor3Matrix {
                 for (int c = 0; c < 20; c++)
                     for (int a = 0; a < 20; a++) {
 
-                        double fSA  = counts3[s][p][c][a] + pseudoCount;
-                        double f_SA = 2* pseudoCount;
+                        double fSA  = counts3[s][p][c][a] + this.pseudoCount;
+                        double f_SA = 2* this.pseudoCount;
                         for (int o = 0; o < 3; o++) {
                             if (o != s) {
                                 //counts andere zustände...
