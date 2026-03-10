@@ -129,6 +129,7 @@ public class GorMatrix {
                     //AS als zahl speichern
                     int aa = getAaIndex(values[0].charAt(0));
                     if (aa == -1) continue;
+                    //0 basiert
                     for (int pos = 0; pos < 17; pos++) {
                         counts[stateIdx][pos][aa] = Integer.parseInt(values[pos + 1]);
                     }
@@ -213,9 +214,10 @@ public class GorMatrix {
                     double iScore = scores[s][p][aaIdx];
                     // e hoch x / 1 plus e hoch x
                     //zw 0 und 1
+                    //zb grösster wert 1 insg 1.7 = 0.588
+
                     totals[s] += Math.exp(iScore) / (1.0 + Math.exp(iScore));
                 } else {
-                    //zb grösster wert 1 insg 1.7 = 0.588
                     totals[s] += scores[s][p][aaIdx];
                 }
             }

@@ -130,7 +130,7 @@ public abstract class GorMethod {
         int windowSize = 17;
         int m = windowSize / 2;
 
-        //prediction fix oder so
+        //prediction fix oder so wenn zu klein
         if (!isTraining && sequence.length() < windowSize) {
             return "C".repeat(sequence.length());
         }
