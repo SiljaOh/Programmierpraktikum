@@ -13,7 +13,7 @@ JAR_PATH          = os.path.join(CGI_DIR, "predict.jar")
 VALIDATE_JAR_PATH = os.path.join(CGI_DIR, "validateGor.jar")
 
 def get_cartoon_style(seq_str):
-    mapping = {'H': '#', 'E': '>', 'C': '.', '-': ' '}
+    mapping = {'H': '(', 'E': '>', 'C': '.', '-': ' '}
     return "".join([mapping.get(c.upper(), '.') for c in seq_str])
 
 def get_cartoon_aligned(ps_line):
@@ -22,7 +22,7 @@ def get_cartoon_aligned(ps_line):
     return "   " + get_cartoon_style(ps_line)
 
 
-def run_gor_predict(model_path, seq_path, fmt, probabilities):
+def run_gor_predict(model_path, seq_path, fmt, probabilities, show_scores=False):
     cmd = [
         "java", "-cp", JAR_PATH, "de.lmu.ifi.bio.gor.cli.Predict",
         "--model", model_path,
@@ -31,6 +31,8 @@ def run_gor_predict(model_path, seq_path, fmt, probabilities):
     ]
     if probabilities:
         cmd.append("--probabilities")
+    if show_scores:
+        cmd.append("--show-scores")
     try:
         return subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                               universal_newlines=True, timeout=300)
@@ -92,6 +94,36 @@ def parse_summary_scores(summary_text):
     return scores
 
 
+# ── Hilfsfunktion: Wahrscheinlichkeits-Zeile hübsch rendern ─────────────────
+def render_prob_line(line):
+    """
+    Gibt eine farbige HTML-Darstellung einer PH/PE/PC-Zeile zurück.
+    Erwartet z.B.:  PH 0.72 0.12 0.16 ...
+    """
+    prefix = line[:3]          # "PH ", "PE " oder "PC "
+    values = line[3:].split()
+
+    color_map = {
+        "PH ": "#e63946",   # rot  – Helix
+        "PE ": "#f4a261",   # orange – Strang
+        "PC ": "#457b9d",   # blau  – Coil
+    }
+    label_map = {
+        "PH ": "PH",
+        "PE ": "PE",
+        "PC ": "PC",
+    }
+    color = color_map.get(prefix, "#888")
+    label = label_map.get(prefix, prefix.strip())
+
+    # Werte als Mini-Balken (optional) – hier nur farbiger Text
+    formatted = " ".join(values)
+    return (
+        f'<span class="seq-line prob-line" style="color:{color}">'
+        f'<span class="prob-label">{html.escape(label)}</span> '
+        f'{html.escape(formatted)}</span>'
+    )
+
 
 HTML_HEAD = """<!DOCTYPE html>
 <html lang="de">
@@ -110,19 +142,19 @@ HTML_HEAD = """<!DOCTYPE html>
             --text: #1a2e2a; --text-muted: #4a6560; --card-bg: #ffffff; --border: #c5e0db;
         }
         * { box-sizing: border-box; margin: 0; padding: 0; }
-       body { 
-            font-family: "DM Sans", system-ui, sans-serif; 
+       body {
+            font-family: "DM Sans", system-ui, sans-serif;
             background: radial-gradient(circle at top right, #11594d, var(--bio-deep) 60%);
-            color: var(--text); 
-            line-height: 1.6; 
-            min-height: 100vh; 
+            color: var(--text);
+            line-height: 1.6;
+            min-height: 100vh;
         }
         body::before {
-            content: ""; 
-            position: fixed; 
+            content: "";
+            position: fixed;
             inset: 0;
             background: linear-gradient(180deg, rgba(13,107,92,0.06) 0%, transparent 40%);
-            pointer-events: none; 
+            pointer-events: none;
             z-index: 0;
         }
         .header {
@@ -131,7 +163,7 @@ HTML_HEAD = """<!DOCTYPE html>
             color: #fff; padding: 40px 24px 48px; text-align: center; overflow: hidden;
         }
         .header::after { display: none; }
-        
+
         .header-inner { position: relative; z-index: 1; }
         .header h1 { margin: 0 0 6px; font-size: 1.6rem; font-weight: 700; letter-spacing: 0.02em; }
         .header p  { margin: 0; opacity: 0.85; font-size: 0.95rem; }
@@ -213,7 +245,13 @@ HTML_HEAD = """<!DOCTYPE html>
             display:block; white-space:pre; letter-spacing:0;
             color:#2a9d8f; font-size:1em; margin-top:0;
         }
-
+        /* Wahrscheinlichkeits-Zeilen */
+        .prob-line { font-size:1em;}
+        .prob-label { font-weight:normal; display:inline-block; width:2ch; }
+        .prob-section-divider {
+            display:block; border:none; border-top:1px dashed var(--border);
+            margin:6px 0 4px;
+        }
         /* Score table */
         .score-table { width:100%; border-collapse:collapse; margin-top:14px;
                        font-family:"JetBrains Mono",monospace; font-size:0.9em; }
@@ -269,6 +307,20 @@ HTML_HEAD = """<!DOCTYPE html>
         }
         .info-icon:hover .tooltip,
         .info-icon:focus .tooltip { display:block; }
+
+        /* Prob-Filter Checkboxen im Ergebnis-Bereich */
+        .prob-filter {
+            display:flex; gap:16px; align-items:center; flex-wrap:wrap;
+            background:var(--bio-green-pale); border:1px solid var(--border);
+            border-radius:10px; padding:10px 16px; margin:10px 0 14px;
+            font-size:0.88em;
+        }
+        .prob-filter strong { color:var(--bio-green); margin-right:4px; }
+        .prob-filter label { margin:0; font-weight:500; font-size:0.93em; cursor:pointer; display:flex; align-items:center; gap:6px; }
+        .prob-filter input[type=checkbox] { width:15px; height:15px; accent-color:var(--bio-green); cursor:pointer; }
+        .ph-color { color:#e63946; font-weight:700; }
+        .pe-color { color:#f4a261; font-weight:700; }
+        .pc-color { color:#457b9d; font-weight:700; }
     </style>
     <script>
         function switchTab(tabId) {
@@ -302,6 +354,29 @@ HTML_HEAD = """<!DOCTYPE html>
         }
         function prevPage() { showPage(_currentPage - 1); }
         function nextPage() { showPage(_currentPage + 1); }
+
+        /* Hinweis: Wahrscheinlichkeiten → Post-Processing automatisch aus */
+        function updatePostprocHint() {
+            var probCb  = document.getElementById('probabilities');
+            var ppCb    = document.getElementById('no_postprocessing');
+            var hint    = document.getElementById('postproc-hint');
+            if (probCb && probCb.checked) {
+                if (ppCb)   ppCb.checked  = true;
+                if (ppCb)   ppCb.disabled = true;
+                if (hint)   hint.style.display = 'block';
+            } else {
+                if (ppCb)   ppCb.disabled = false;
+                if (hint)   hint.style.display = 'none';
+            }
+        }
+
+        /* Wahrscheinlichkeits-Zeilen ein-/ausblenden */
+        function toggleProb(type) {
+            var show = document.getElementById('show-p' + type).checked;
+            document.querySelectorAll('.prob-row-' + type).forEach(function(el) {
+                el.style.display = show ? 'block' : 'none';
+            });
+        }
     </script>
 </head>
 <body>
@@ -396,11 +471,22 @@ HTML_FORM = """
     <!-- 4. Optionen -->
     <div class="card">
         <div class="card-title">4. Optionen</div>
+
         <div class="checkbox-row" style="margin-bottom:12px">
             <input type="checkbox" name="probabilities" id="probabilities" value="1">
-            <label for="probabilities">Wahrscheinlichkeiten ausgeben (PH, PE, PC)</label>
+            <label for="probabilities">Wahrscheinlichkeiten berechnen (Softmax-Umrechnung)</label>
         </div>
+
         <div class="checkbox-row" style="margin-bottom:12px">
+            <input type="checkbox" name="show_scores" id="show_scores" value="1">
+            <label for="show_scores">Scores ausgeben (IH/IE/IC bzw. PH/PE/PC)
+                <small style="display:inline;font-size:0.82em;color:var(--text-muted);font-weight:400;">
+                    – Post-Processing wird deaktiviert
+                </small>
+            </label>
+        </div>
+
+        <div class="checkbox-row" style="margin-bottom:4px">
             <input type="checkbox" name="show_jmol" id="show_jmol" value="1">
             <label for="show_jmol">3D-Struktur mit JSmol anzeigen (nur bei PDB ID)</label>
         </div>
@@ -471,9 +557,10 @@ def main():
         print(HTML_FOOTER)
         return
 
-    seq_mode      = fs.getvalue("seq_mode")      or "text"
-    ref_mode      = fs.getvalue("ref_mode")      or "none"
+    seq_mode      = fs.getvalue("seq_mode")    or "text"
+    ref_mode      = fs.getvalue("ref_mode")    or "none"
     probabilities = fs.getvalue("probabilities") == "1"
+    show_scores   = fs.getvalue("show_scores")   == "1"
     show_jmol     = fs.getvalue("show_jmol")     == "1"
 
     tmp_seq = tmp_model = tmp_ref = None
@@ -547,7 +634,7 @@ def main():
         print(HTML_FOOTER)
         return
 
-    res_txt = run_gor_predict(model_path, seq_path, "txt", probabilities)
+    res_txt = run_gor_predict(model_path, seq_path, "txt", probabilities, show_scores)
 
     if not isinstance(res_txt, subprocess.CompletedProcess):
         print(f"<div class='status-msg error'><strong>Systemfehler:</strong> {html.escape(str(res_txt))}</div>")
@@ -590,6 +677,7 @@ def main():
     num_pages = max(1, (total + per_page - 1) // per_page)
 
     print("<div class='result-title'>Vorhersage:</div>")
+
     if num_pages > 1:
         print("<div class='pagination'>")
         print("<button class='page-btn' id='btn-prev' onclick='prevPage()' disabled>&#9664; Zurück</button>")
@@ -600,19 +688,66 @@ def main():
 
     for i, block in enumerate(blocks):
         display = "block" if i < per_page else "none"
-        header  = block[0]          # z.B. "> 1TIM_A|..."
+        header  = block[0]
 
         print(f"<div class='seq-block' style='display:{display}'>")
         print(f"<span class='seq-header'>{html.escape(header)}</span>")
 
-        for line in block[1:]:
-            if line.startswith("PS "):
-                print(f"<span class='seq-line'>{html.escape(line)}</span>")
-                cartoon_line = get_cartoon_aligned(line)
-                print(f"<span class='cartoon-line'>{html.escape(cartoon_line)}</span>")
-            else:
-                print(f"<span class='seq-line'>{html.escape(line)}</span>")
+        # Sammle Score-Zeilen (PH/PE/PC oder IH/IE/IC) um sie gemeinsam zu rendern
+        score_lines = {}   # label -> raw string after prefix
+        pending_lines = []  # alle nicht-score Zeilen vor dem flush
 
+        def flush_score_lines():
+            if not score_lines:
+                return
+            # Baue pro Position: welche Zeile hat die höchste Ziffer?
+            # Alle Zeilen auf gleiche Länge bringen
+            rows = {}
+            for lbl, raw in score_lines.items():
+                rows[lbl] = raw  # z.B. "--------012345678--------"
+
+            # Rendern: Zeichen für Zeichen, höchste Ziffer rot
+            for lbl, raw in rows.items():
+                out = f'<span class="seq-line prob-line prob-row-{lbl[-1]}">'
+                out += f'<span class="prob-label">{html.escape(lbl)}</span> '
+                for pos, ch in enumerate(raw):
+                    if ch.isdigit():
+                        # Vergleiche mit gleicher Position in den anderen Zeilen
+                        my_val = int(ch)
+                        others = [int(r[pos]) for r2, r in rows.items() if r2 != lbl and pos < len(r) and r[pos].isdigit()]
+                        is_max = my_val > 0 and (not others or my_val >= max(others))
+                        if is_max:
+                            out += f'<span style="color:#c0392b">{ch}</span>'
+                        else:
+                            out += ch
+                    else:
+                        out += html.escape(ch)
+                out += '</span>'
+                print(out)
+            score_lines.clear()
+
+        has_prob_above = False
+        for line in block[1:]:
+            prefix = line[:3]
+
+            if prefix in ("PH ", "PE ", "PC ", "IH ", "IE ", "IC "):
+                has_prob_above = True
+                lbl = prefix.strip()   # "PH", "PE" etc.
+                score_lines[lbl] = line[3:]
+            else:
+                # Vor jeder Nicht-Score-Zeile: ausstehende Score-Zeilen rausschreiben
+                flush_score_lines()
+                if has_prob_above and line.startswith("PS "):
+                    print("<hr class='prob-section-divider'>")
+                    has_prob_above = False
+                if line.startswith("PS "):
+                    print(f"<span class='seq-line'>{html.escape(line)}</span>")
+                    cartoon_line = get_cartoon_aligned(line)
+                    print(f"<span class='cartoon-line'>{html.escape(cartoon_line)}</span>")
+                else:
+                    print(f"<span class='seq-line'>{html.escape(line)}</span>")
+
+        flush_score_lines()
         print("</div>")
 
     b64 = base64.b64encode(res_txt.stdout.encode()).decode()
