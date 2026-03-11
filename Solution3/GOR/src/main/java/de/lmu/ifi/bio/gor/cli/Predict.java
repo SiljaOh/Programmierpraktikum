@@ -189,9 +189,6 @@ public class Predict {
 
             if (showScores) {
 
-                // Confidence Plot
-                printConfidenceHtml(as, gor, useProbabilities);
-
                 // Scores
                 printProbabilitiesHtml(as, gor, useProbabilities);
             }
@@ -270,82 +267,6 @@ public class Predict {
             }
             System.out.println("--------</div>");
         }
-    }
-
-    private static double confidence(double h, double e, double c) {
-
-        double max = Math.max(h, Math.max(e, c));
-
-        double second;
-
-        if (max == h)
-            second = Math.max(e, c);
-        else if (max == e)
-            second = Math.max(h, c);
-        else
-            second = Math.max(h, e);
-
-        return max - second;
-    }
-
-
-    private static void printConfidenceHtml(String sequence, GorMethod gor, boolean useProbabilities) {
-
-        double[][] raw = gor.getScores(sequence);
-
-        int m = 8;
-
-        System.out.println("<div style='height:25px'>");
-
-        for (int i = m; i < raw.length - m; i++) {
-
-            double h, e, c;
-
-            if (useProbabilities) {
-
-                double max = Math.max(raw[i][0], Math.max(raw[i][1], raw[i][2]));
-
-                double[] exp = {
-                        Math.exp(raw[i][0] - max),
-                        Math.exp(raw[i][1] - max),
-                        Math.exp(raw[i][2] - max)
-                };
-
-                double sum = exp[0] + exp[1] + exp[2];
-
-                h = exp[0] / sum;
-                e = exp[1] / sum;
-                c = exp[2] / sum;
-
-            } else {
-
-                h = raw[i][0];
-                e = raw[i][1];
-                c = raw[i][2];
-
-            }
-
-            double conf = confidence(h, e, c);
-
-            double norm = conf / 1.0;
-
-            if (norm > 1) norm = 1;
-            if (norm < 0) norm = 0;
-
-            int height = (int)(norm * 20);
-
-            System.out.print(
-                    "<div style='display:inline-block;"
-                            + "width:4px;"
-                            + "height:" + height + "px;"
-                            + "background:#3aa;"
-                            + "margin-right:1px;"
-                            + "vertical-align:bottom;"
-                            + "'></div>"
-            );
-        }
-
-        System.out.println("</div>");
     }
 
 }
