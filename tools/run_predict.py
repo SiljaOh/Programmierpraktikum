@@ -252,6 +252,7 @@ HTML_HEAD = """<!DOCTYPE html>
             display:block; border:none; border-top:1px dashed var(--border);
             margin:6px 0 4px;
         }
+        
         /* Score table */
         .score-table { width:100%; border-collapse:collapse; margin-top:14px;
                        font-family:"JetBrains Mono",monospace; font-size:0.9em; }
@@ -474,7 +475,7 @@ HTML_FORM = """
 
         <div class="checkbox-row" style="margin-bottom:12px">
             <input type="checkbox" name="probabilities" id="probabilities" value="1">
-            <label for="probabilities">Wahrscheinlichkeiten berechnen (Softmax-Umrechnung)</label>
+            <label for="probabilities">Benutze die Wahrscheinlichkeitsformel</label>
         </div>
 
         <div class="checkbox-row" style="margin-bottom:12px">
