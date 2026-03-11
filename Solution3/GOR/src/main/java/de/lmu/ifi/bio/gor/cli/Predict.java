@@ -89,7 +89,6 @@ public class Predict {
                 break;
             default:
                 gor = new Gor1();
-                gor = new Gor1();
         }
 
 
