@@ -213,7 +213,7 @@ def main():
             background: white;
         }
 
-        input[type="file"] {
+        [type="file"] {
             width: 100%;
             padding: 10px 14px;
             border: 1.5px dashed #c8e0d4;
@@ -396,7 +396,7 @@ def main():
     if "train_action" in fs:
         input_mode = fs.getvalue("input_mode") or "internal"
         method = fs.getvalue("method") or "gor1"
-        model_name = (fs.getvalue("model_name") or "my_gor_model.txt").strip()
+        model_name = (fs.getvalue("model_name") or "my_gor_model.model").strip()
         tmp_file = None
         final_db = None
         error_msg = None
