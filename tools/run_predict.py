@@ -224,10 +224,10 @@ def fetch_seclib_via_script(pdb_id):
         return None, f"Ungültige PDB ID: '{pdb_id}'."
 
     if not os.path.exists(MAKE_SECLIB_PATH):
-        return None, "make_seclib.py nicht gefunden – bitte in den CGI-Ordner hochladen."
+        return None, "get_seclib.py nicht gefunden – bitte in den CGI-Ordner hochladen."
 
     # 1. PDB-Datei herunterladen
-    tmp_pdb = tempfile.NamedTemporaryFile(suffix=".pdb", delete=False, mode='wb', prefix=pdb_id + "_")
+    tmp_pdb = tempfile.NamedTemporaryFile(suffix=".pdb", delete=False, mode='wb')
     tmp_pdb.close()
     url = f"https://files.rcsb.org/download/{pdb_id}.pdb"
     try:
@@ -752,9 +752,9 @@ HTML_FORM = """
             <textarea name="seq_text" rows="5" placeholder=">MeinProtein&#10;ACDEFGHIKLMNPQRSTVWY...&#10;&#10;oder einfach Sequenz ohne Header"></textarea>
         </div>
         <div class="seq-tab-content tab-content" id="content-pdbid">
-            <label>PDB ID (z.B. 1TIM)</label>
-            <input type="text" name="pdb_id" placeholder="z.B. 1TIM, 2HHB...">
-            <small>Sequenz + 3D-Struktur werden automatisch von rcsb.org geladen.</small>
+            <label>PDB IDs (kommagetrennt)</label>
+            <input type="text" name="pdb_id" placeholder="z.B. 1TIM, 2HHB, 1CRN...">
+            <small>Mehrere 4-stellige PDB IDs kommagetrennt – Sequenzen werden automatisch von rcsb.org geladen.</small>
         </div>
         <div class="seq-tab-content tab-content" id="content-upload">
             <label>FASTA-Datei hochladen</label>
@@ -805,14 +805,14 @@ HTML_FORM = """
                 <span class="info-icon" tabindex="0">&#9432;
                     <span class="tooltip">
                         Die PDB-Datei wird automatisch von rcsb.org geladen und mit
-                        <strong>make_seclib.py</strong> in eine Referenzstruktur umgewandelt.<br><br>
-                        Voraussetzung: <strong>make_seclib.py</strong> muss im CGI-Ordner liegen.<br><br>
+                        <strong>get_seclib.py</strong> in eine Referenzstruktur umgewandelt.<br><br>
+                        Voraussetzung: <strong>get_seclib.py</strong> muss im CGI-Ordner liegen.<br><br>
                         Die Sekundärstruktur wird aus den HELIX/SHEET-Einträgen der PDB-Datei extrahiert.
                     </span>
                 </span>
             </label>
             <input type="text" name="ref_pdb_id" placeholder="z.B. 1TIM, 2HHB...">
-            <small>4-stellige PDB ID – Struktur wird automatisch heruntergeladen und verglichen.</small>
+            <small>Mehrere PDB IDs kommagetrennt – Strukturen werden automatisch heruntergeladen und verglichen.</small>
         </div>
         <div class="ref-tab-content tab-content" id="ref-content-upload">
             <label style="display:flex;align-items:center;gap:7px;">
@@ -960,13 +960,26 @@ def main():
                 seq_path = tmp_s.name; tmp_seq = seq_path
 
         elif seq_mode == "pdbid":
-            pdb_id_used = (fs.getvalue("pdb_id") or "").strip().upper()
-            if not pdb_id_used:
+            pdb_ids_raw = (fs.getvalue("pdb_id") or "").strip().upper()
+            if not pdb_ids_raw:
                 error_msg = "Bitte eine PDB ID eingeben."
             else:
-                print(f"<div class='status-msg info'>Lade PDB <strong>{pdb_id_used}</strong> von rcsb.org…</div>")
-                seq_path, error_msg = fetch_fasta_from_pdb(pdb_id_used)
-                tmp_seq = seq_path
+                pdb_ids = [x.strip() for x in pdb_ids_raw.split(",") if x.strip()]
+                pdb_id_used = pdb_ids[0]  # für JSmol nur erste
+                combined_fasta = ""
+                for pid in pdb_ids:
+                    print(f"<div class='status-msg info'>Lade PDB <strong>{pid}</strong> von rcsb.org…</div>")
+                    tmp_f, err = fetch_fasta_from_pdb(pid)
+                    if err:
+                        error_msg = err
+                        break
+                    with open(tmp_f, 'r') as f:
+                        combined_fasta += f.read() + "\n"
+                    os.unlink(tmp_f)
+                if not error_msg:
+                    tmp_s = tempfile.NamedTemporaryFile(suffix=".fasta", delete=False, mode='w')
+                    tmp_s.write(combined_fasta); tmp_s.close()
+                    seq_path = tmp_s.name; tmp_seq = seq_path
 
         elif seq_mode == "upload":
             if "seq_file" in fs and fs["seq_file"].filename:
@@ -986,18 +999,27 @@ def main():
 
     if not error_msg and ref_mode != "none":
         if ref_mode == "pdbid":
-            ref_pdb_id = (fs.getvalue("ref_pdb_id") or "").strip().upper()
-            if not ref_pdb_id:
+            ref_pdb_ids_raw = (fs.getvalue("ref_pdb_id") or "").strip().upper()
+            if not ref_pdb_ids_raw:
                 error_msg = "Bitte eine PDB ID für die Referenzstruktur eingeben."
             else:
-                print(f"<div class='status-msg info'>Lade Referenz-PDB <strong>{html.escape(ref_pdb_id)}</strong> und erzeuge Sekundärstruktur…</div>")
-                result = fetch_seclib_via_script(ref_pdb_id)
-                if result[0] is None:
-                    # Fehler: result = (None, fehlermeldung)
-                    error_msg = result[1]
-                else:
-                    ref_path, ref_text_raw = result
-                    tmp_ref = ref_path
+                ref_pdb_ids = [x.strip() for x in ref_pdb_ids_raw.split(",") if x.strip()]
+                combined_seclib = ""
+                for pid in ref_pdb_ids:
+                    print(f"<div class='status-msg info'>Lade Referenz-PDB <strong>{html.escape(pid)}</strong> und erzeuge Sekundärstruktur…</div>")
+                    result = fetch_seclib_via_script(pid)
+                    if result[0] is None:
+                        error_msg = result[1]
+                        break
+                    tmp_seclib_path, _ = result
+                    with open(tmp_seclib_path, 'r') as f:
+                        combined_seclib += f.read() + "\n"
+                    os.unlink(tmp_seclib_path)
+                if not error_msg:
+                    tmp_r = tempfile.NamedTemporaryFile(suffix=".seclib", delete=False, mode='w')
+                    tmp_r.write(combined_seclib); tmp_r.close()
+                    ref_path = tmp_r.name; tmp_ref = ref_path
+                    ref_text_raw = combined_seclib
 
         elif ref_mode == "upload":
             if "ref_file" in fs and fs["ref_file"].filename:
