@@ -861,15 +861,65 @@ print("""
     </section>
 """)
 
-
 # ── PSIPRED-Vergleich ────────────────────────────────────────────────
 print("""
     <section class="card">
         <div class="card-title">Benchmarks</div>
         <h2>Vergleich mit PSIPRED</h2>
-        <p>Hier vergleichen wir unsere statistischen GOR-Modelle gegen den
-           State-of-the-Art Benchmark PSIPRED.</p>
-        <div class="plot-placeholder">[Plot: Q3 &amp; SOV Vergleich (Bar-Chart)]</div>
+
+        <p><strong>Was ist PSIPRED?</strong> PSIPRED ist ein Industriestandard zur Sekund&auml;rstrukturvorhersage. Er nutzt ein zweistufiges neuronales Netzwerk, das auf evolution&auml;ren Informationen (PSSMs aus PSI-BLAST) basiert. Da PSIPRED seit Jahrzehnten als einer der stabilsten Algorithmen gilt, dient er als idealer Benchmark, um die Vorhersagekraft unserer GOR-Implementierungen einzuordnen.</p>
+
+        <div style="background:var(--bio-green-pale); border-left:4px solid var(--bio-green); padding:12px 16px; margin:16px 0; font-size:0.92em;">
+            <strong>Test-Methodik:</strong> Der Vergleich erfolgte auf zwei Datens&auml;tzen:
+            <ul style="margin:8px 0 0 20px; padding:0;">
+                <li><strong>5-fache Kreuzvalidierung (5CV):</strong> Auf dem CB513-Datensatz zur Messung der internen Konsistenz.</li>
+                <li><strong>CASP Test-Set:</strong> Unser eigenst&auml;ndiges, redundanzfreies Set zur Messung der echten Generalisierungsf&auml;higkeit.</li>
+            </ul>
+        </div>
+
+        <div class="plot-slider" id="psi-slider">
+            <div class="slider-track">
+                <div class="slider-slide">
+                    <img src="plots/Benchmarking/CASPPSIPRED5CVQ3.png" alt="Q3 Vergleich PSIPRED">
+                    <div class="slide-caption">
+                        <strong>Q3-Performance:</strong> GOR IV vs. GOR V vs. PSIPRED 
+                        <span style="display:block; font-size:0.85em; color:#666; margin-top:2px;">Drei-Zustands-Genauigkeit (CB513 5CV & CASP)</span>
+                    </div>
+                </div>
+                <div class="slider-slide">
+                    <img src="plots/Benchmarking/CASPPSIPRED5CVSOV.png" alt="SOV Vergleich PSIPRED">
+                    <div class="slide-caption">
+                        <strong>SOV-Score:</strong> Segment-Overlap Vergleich
+                        <span style="display:block; font-size:0.85em; color:#666; margin-top:2px;">Bewertung der strukturellen Realit&auml;t im Vergleich zum Benchmark</span>
+                    </div>
+                </div>
+            </div>
+
+            <button class="slider-btn prev" onclick="slidePSI(-1)">&#8592;</button>
+            <button class="slider-btn next" onclick="slidePSI(1)">&#8594;</button>
+
+            <div class="slider-dots">
+                <span class="dot active" onclick="goToPSISlide(0)"></span>
+                <span class="dot" onclick="goToPSISlide(1)"></span>
+            </div>
+        </div>
+
+        <script>
+            var psiIndex = 0;
+            function slidePSI(dir) {
+                var slides = document.querySelectorAll('#psi-slider .slider-slide');
+                psiIndex = (psiIndex + dir + slides.length) % slides.length;
+                goToPSISlide(psiIndex);
+            }
+            function goToPSISlide(i) {
+                psiIndex = i;
+                var track = document.querySelector('#psi-slider .slider-track');
+                track.style.transform = 'translateX(-' + (i * 100) + '%)';
+                document.querySelectorAll('#psi-slider .dot').forEach(function(d, idx) {
+                    d.classList.toggle('active', idx === i);
+                });
+            }
+        </script>
     </section>
 
 </div>
@@ -897,4 +947,3 @@ print("""
 </body>
 </html>
 """)
-
