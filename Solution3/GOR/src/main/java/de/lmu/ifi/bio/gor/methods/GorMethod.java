@@ -17,6 +17,10 @@ public abstract class GorMethod {
         return this.matrix;
     }
 
+    public double[][] gor5Scores = null;
+
+
+
     protected boolean useProbability = false;
     protected boolean showScores = false;
 
@@ -221,23 +225,37 @@ public abstract class GorMethod {
         }
 
         StringBuilder result = new StringBuilder();
-        for (int i = 0; i < queryLen; i++) {
-            //gaps in query überspringen
-            if (querySeq.charAt(i) == '-') continue;
-            //für jede posi in sequenz höchster score
-            if (sumH[i] >= sumE[i] && sumH[i] >= sumC[i]) {
-                result.append('H');
-            } else if (sumE[i] >= sumH[i] && sumE[i] >= sumC[i]) {
-                result.append('E');
-            } else result.append('C');
-        }
-        // Ränder wie in slidingWindow auffüllen
         int m = 8;
-        String raw = result.toString();
-        if (raw.length() <= 2 * m) return raw; // zu kurz, nichts tun
 
-        return "-".repeat(m) + raw.substring(m, raw.length() - m) + "-".repeat(m);
+        for (int i = 0; i < queryLen; i++) {
+            // Gaps in der Query-Sequenz überspringen (wichtig für Alignment-Logik)
+            if (querySeq.charAt(i) == '-') continue;
 
+            // Rand-Logik: Die ersten 8 und letzten 8 Zeichen sind immer '-'
+            // Wir zählen hier die Aminosäuren der Query, die KEINE Gaps sind
+            // Da deine Summen-Arrays die gleiche Länge wie querySeq haben,
+            // ist der Index 'i' hier korrekt.
+            if (i < m || i >= queryLen - m) {
+                result.append('-');
+            } else {
+                // Für die Mitte: Höchsten Score wählen
+                if (sumH[i] >= sumE[i] && sumH[i] >= sumC[i]) {
+                    result.append('H');
+                } else if (sumE[i] >= sumH[i] && sumE[i] >= sumC[i]) {
+                    result.append('E');
+                } else {
+                    result.append('C');
+                }
+            }
+        }
+        gor5Scores = new double[queryLen][3];
+        for (int i = 0; i < queryLen; i++) {
+            gor5Scores[i][0] = sumH[i];
+            gor5Scores[i][1] = sumE[i];
+            gor5Scores[i][2] = sumC[i];
+        }
+
+        return result.toString();
     }
 
 

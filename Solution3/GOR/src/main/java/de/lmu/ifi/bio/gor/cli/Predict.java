@@ -206,8 +206,7 @@ public class Predict {
     }
 
     private static void printProbabilities(String sequence, GorMethod gor, boolean useProbabilities) {
-        double[][] raw = gor.getScores(sequence);
-        String[] labels;
+        double[][] raw = (gor.gor5Scores != null) ? gor.gor5Scores : gor.getScores(sequence);        String[] labels;
         if (useProbabilities) {
             labels = new String[]{"PH", "PE", "PC"};
         }
@@ -236,8 +235,7 @@ public class Predict {
     }
 
     private static void printProbabilitiesHtml(String sequence, GorMethod gor, boolean useProbabilities) {
-        double[][] raw = gor.getScores(sequence);
-        String[] labels;
+        double[][] raw = (gor.gor5Scores != null) ? gor.gor5Scores : gor.getScores(sequence);        String[] labels;
         if (useProbabilities) {
             labels = new String[]{"PH", "PE", "PC"};
         }
