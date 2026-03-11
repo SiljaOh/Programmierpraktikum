@@ -102,226 +102,134 @@ def main():
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>GOR Model Trainer</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
     <style>
+        :root {
+            --bio-green: #0d6b5c; --bio-green-light: #d4ede8; --bio-green-pale: #e8f6f3;
+            --bio-teal: #2a9d8f; --bio-dark: #0f2926; --bio-deep: #0a1f1c;
+            --text: #1a2e2a; --text-muted: #4a6560; --card-bg: #ffffff; --border: #c5e0db;
+        }
         * { box-sizing: border-box; margin: 0; padding: 0; }
-
         body {
-            font-family: 'Segoe UI', system-ui, sans-serif;
-            background: #f0f4f3;
-            color: #1a2e2a;
+            font-family: "DM Sans", system-ui, sans-serif;
+            background: var(--bio-deep);
+            color: var(--text);
+            line-height: 1.6;
             min-height: 100vh;
         }
-
-        .site-header {
-            background: linear-gradient(135deg, #1a3a30 0%, #2d5a45 60%, #3a7a5a 100%);
-            color: white;
-            text-align: center;
-            padding: 40px 20px 35px;
+        body::before {
+            content: ""; position: fixed; inset: 0;
+            background:
+                linear-gradient(180deg, rgba(13,107,92,0.06) 0%, transparent 40%),
+                radial-gradient(ellipse 80% 50% at 50% -20%, rgba(42,157,143,0.15), transparent),
+                repeating-linear-gradient(0deg, transparent, transparent 32px, rgba(13,107,92,0.03) 32px, rgba(13,107,92,0.03) 33px),
+                repeating-linear-gradient(90deg, transparent, transparent 32px, rgba(13,107,92,0.03) 32px, rgba(13,107,92,0.03) 33px);
+            pointer-events: none; z-index: 0;
         }
-
-        .site-header h1 {
-            font-size: 1.9em;
-            font-weight: 700;
-            letter-spacing: 0.01em;
-            margin-bottom: 6px;
+        .header {
+            position: relative;
+            background: linear-gradient(160deg, var(--bio-deep) 0%, var(--bio-dark) 40%, var(--bio-green) 100%);
+            color: #fff; padding: 40px 24px 48px; text-align: center; overflow: hidden;
         }
-
-        .site-header .subtitle {
-            font-size: 0.95em;
-            opacity: 0.75;
-            letter-spacing: 0.03em;
+        .header::after {
+            content: ""; position: absolute; bottom: 0; left: 0; right: 0; height: 60px;
+            background: linear-gradient(to top, var(--bio-deep), transparent); pointer-events: none;
         }
+        .header-inner { position: relative; z-index: 1; }
+        .header h1 { margin: 0 0 6px; font-size: 1.6rem; font-weight: 700; letter-spacing: 0.02em; }
+        .header p  { margin: 0; opacity: 0.85; font-size: 0.95rem; }
+        .hero-dots { display: flex; gap: 8px; justify-content: center; margin-top: 14px; }
+        .hero-dots span { width: 8px; height: 8px; border-radius: 50%; background: rgba(255,255,255,0.45); }
 
-        .page-content {
-            max-width: 800px;
-            margin: 0 auto;
-            padding: 35px 20px 60px;
+        .main { position: relative; z-index: 1; max-width: 900px; margin: -24px auto 0; padding: 0 20px 56px; }
+        .main-panel {
+            background: linear-gradient(180deg, rgba(255,255,255,0.97) 0%, rgba(248,252,251,0.98) 100%);
+            border-radius: 20px; padding: 36px 32px 40px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.25), 0 0 0 1px rgba(255,255,255,0.1) inset;
         }
 
         .card {
-            background: white;
-            border-radius: 16px;
-            padding: 30px;
-            margin-bottom: 20px;
-            box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+            background: var(--card-bg); border: 1px solid var(--border); border-radius: 14px;
+            padding: 24px 24px 20px; margin-bottom: 20px;
         }
-
         .card-title {
-            font-size: 0.8em;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 0.08em;
-            color: #3a7a5a;
-            margin-bottom: 18px;
+            font-size: 0.78em; font-weight: 700; text-transform: uppercase;
+            letter-spacing: 0.08em; color: var(--bio-green); margin-bottom: 16px;
         }
 
-        .tab-buttons {
-            display: flex;
-            gap: 8px;
-            margin-bottom: 20px;
-        }
-
+        .tab-buttons { display: flex; gap: 8px; margin-bottom: 18px; }
         .tab-btn {
-            flex: 1;
-            padding: 10px 14px;
-            border: 2px solid #d4e8df;
-            border-radius: 10px;
-            background: white;
-            cursor: pointer;
-            font-weight: 600;
-            font-size: 0.9em;
-            color: #4a7a65;
-            transition: all 0.2s;
+            flex: 1; padding: 9px 12px; border: 2px solid var(--border); border-radius: 10px;
+            background: white; cursor: pointer; font-weight: 600; font-size: 0.88em;
+            color: var(--bio-green); font-family: "DM Sans", sans-serif; transition: all 0.2s;
         }
-
-        .tab-btn:hover {
-            border-color: #3a7a5a;
-            background: #f0f8f4;
-        }
-
-        .tab-btn.active {
-            border-color: #3a7a5a;
-            background: #3a7a5a;
-            color: white;
-        }
-
+        .tab-btn:hover  { border-color: var(--bio-teal); background: var(--bio-green-pale); }
+        .tab-btn.active { border-color: var(--bio-green); background: var(--bio-green); color: white; }
         .tab-content { display: none; }
         .tab-content.active { display: block; }
 
         label {
-            display: block;
-            font-weight: 600;
-            font-size: 0.9em;
-            color: #2d4a40;
-            margin-bottom: 8px;
+            display: block; font-weight: 600; font-size: 0.9em;
+            color: var(--text); margin-bottom: 7px;
         }
-
         select, input[type="text"] {
-            width: 100%;
-            padding: 11px 14px;
-            border: 1.5px solid #c8e0d4;
-            border-radius: 10px;
-            font-size: 0.95em;
-            color: #1a2e2a;
-            background: #f8fcfa;
-            outline: none;
-            transition: border-color 0.2s;
+            width: 100%; padding: 10px 13px; border: 1.5px solid var(--border); border-radius: 10px;
+            font-size: 0.93em; font-family: "DM Sans", sans-serif; color: var(--text);
+            background: var(--bio-green-pale); outline: none; transition: border-color 0.2s;
         }
-
-        select:focus, input[type="text"]:focus {
-            border-color: #3a7a5a;
-            background: white;
+        select:focus, input[type="text"]:focus { border-color: var(--bio-teal); background: white; }
+        input[type="file"] {
+            width: 100%; padding: 10px 13px; border: 1.5px dashed var(--border); border-radius: 10px;
+            font-size: 0.88em; font-family: "DM Sans", sans-serif;
+            background: var(--bio-green-pale); cursor: pointer;
         }
-
-        [type="file"] {
-            width: 100%;
-            padding: 10px 14px;
-            border: 1.5px dashed #c8e0d4;
-            border-radius: 10px;
-            font-size: 0.9em;
-            background: #f8fcfa;
-            cursor: pointer;
-        }
-
-        small {
-            display: block;
-            margin-top: 6px;
-            font-size: 0.82em;
-            color: #7a9e90;
-        }
+        small { display: block; margin-top: 6px; font-size: 0.82em; color: var(--text-muted); }
 
         .submit-btn {
-            width: 100%;
-            padding: 14px;
-            background: linear-gradient(135deg, #2d5a45, #3a7a5a);
-            color: white;
-            border: none;
-            border-radius: 12px;
-            font-size: 1em;
-            font-weight: 700;
-            cursor: pointer;
-            letter-spacing: 0.03em;
-            transition: opacity 0.2s;
-            margin-top: 5px;
+            width: 100%; padding: 14px;
+            background: linear-gradient(135deg, var(--bio-dark), var(--bio-green));
+            color: white; border: none; border-radius: 12px; font-size: 1em; font-weight: 700;
+            font-family: "DM Sans", sans-serif; cursor: pointer; letter-spacing: 0.03em;
+            transition: opacity 0.2s; margin-top: 5px;
         }
-
-        .submit-btn:hover { opacity: 0.9; }
+        .submit-btn:hover { opacity: 0.88; }
 
         .status-msg {
-            padding: 14px 18px;
-            border-radius: 12px;
-            margin: 16px 0;
-            font-size: 0.95em;
-            border-left: 4px solid;
+            padding: 13px 17px; border-radius: 12px; margin: 16px 0;
+            font-size: 0.93em; border-left: 4px solid;
         }
-
-        .error {
-            background: #fdf0ef;
-            color: #8b2a22;
-            border-color: #c0392b;
-        }
-
-        .success {
-            background: #edf7f2;
-            color: #1e6644;
-            border-color: #27ae60;
-        }
-
-        .info {
-            background: #eef5fb;
-            color: #1a4d7a;
-            border-color: #2980b9;
-        }
+        .error   { background: #fdf0ef; color: #8b2a22; border-color: #c0392b; }
+        .success { background: var(--bio-green-pale); color: var(--bio-dark); border-color: var(--bio-green); }
+        .info    { background: #eef5fb; color: #1a4d7a; border-color: #2980b9; }
 
         .preview-box {
-            background: #1a2e2a;
-            color: #a8d5bc;
-            padding: 20px;
-            border-radius: 12px;
-            font-family: 'Courier New', monospace;
-            font-size: 0.85em;
-            white-space: pre;
-            max-height: 280px;
-            overflow-y: auto;
-            overflow-x: auto;
-            margin-top: 16px;
+            background: #1a2e2a; color: #a8d5bc; padding: 20px; border-radius: 12px;
+            font-family: "JetBrains Mono", monospace; font-size: 0.85em; white-space: pre;
+            max-height: 280px; overflow-y: auto; overflow-x: auto; margin-top: 16px;
         }
-
         .preview-title {
-            font-weight: 700;
-            font-size: 0.95em;
-            color: #2d4a40;
-            margin: 20px 0 6px;
+            font-weight: 700; font-size: 0.9em; color: var(--bio-green);
+            margin: 20px 0 4px; text-transform: uppercase; letter-spacing: 0.06em;
         }
 
         .download-btn {
             display: inline-block;
-            background: linear-gradient(135deg, #2d5a45, #3a7a5a);
-            color: white;
-            padding: 12px 24px;
-            text-decoration: none;
-            border-radius: 10px;
-            font-weight: 700;
-            font-size: 0.95em;
-            margin-top: 16px;
-            transition: opacity 0.2s;
+            background: linear-gradient(135deg, var(--bio-dark), var(--bio-green));
+            color: white; padding: 11px 22px; text-decoration: none; border-radius: 10px;
+            font-weight: 700; font-size: 0.92em; margin-top: 14px; transition: opacity 0.2s;
         }
+        .download-btn:hover { opacity: 0.88; }
 
-        .download-btn:hover { opacity: 0.9; }
-
-        .back-link {
-            text-align: center;
-            margin-top: 30px;
+        footer {
+            position: relative; z-index: 1;
+            background: linear-gradient(180deg, var(--bio-dark) 0%, var(--bio-deep) 100%);
+            color: rgba(255,255,255,0.88); padding: 22px 24px; font-size: 0.88rem;
+            text-align: center; border-top: 1px solid rgba(13,107,92,0.4); margin-top: 40px;
         }
-
-        .back-link a {
-            color: #3a7a5a;
-            text-decoration: none;
-            font-weight: 600;
-            font-size: 0.9em;
-        }
-
-        .back-link a:hover { text-decoration: underline; }
+        footer a { color: #9ae6d9; text-decoration: none; }
+        footer a:hover { text-decoration: underline; }
     </style>
     <script>
         function switchTab(tabId) {
@@ -335,18 +243,21 @@ def main():
 </head>
 <body>
 
-<div class="site-header">
-    <h1>GOR Model Training</h1>
-    <div class="subtitle">WS 2025/2026 &middot; Gruppe 17</div>
-</div>
+<header class="header">
+    <div class="header-inner">
+        <h1>GOR Model Training</h1>
+        <p>WS 2025/2026 <span>&middot;</span> Gruppe 17</p>
+        <div class="hero-dots"><span></span><span></span><span></span></div>
+    </div>
+</header>
 
-<div class="page-content">
+<main class="main">
+<div class="main-panel">
     <form method="post" enctype="multipart/form-data">
         <input type="hidden" name="input_mode" id="input_mode" value="internal">
 
         <div class="card">
             <div class="card-title">1. Trainingsdaten wählen</div>
-
             <div class="tab-buttons">
                 <button type="button" class="tab-btn active" id="tab-internal" onclick="switchTab('internal')">Interne DB</button>
                 <button type="button" class="tab-btn" id="tab-pdbid" onclick="switchTab('pdbid')">PDB ID</button>
@@ -386,7 +297,7 @@ def main():
         <div class="card">
             <div class="card-title">3. Modell-Ausgabedatei</div>
             <label>Dateiname</label>
-            <input type="text" name="model_name" value="my_gor_model.txt">
+            <input type="text" name="model_name" value="my_gor_model.model">
         </div>
 
         <button type="submit" name="train_action" class="submit-btn">Training starten</button>
@@ -458,10 +369,13 @@ def main():
                 os.unlink(tmp_file)
 
     print("""
-    <div class="back-link">
-        <a href="../index.html">&larr; Zurück zur Hauptseite</a>
-    </div>
 </div>
+</main>
+
+<footer>
+    ProgPrakt WS 2025/2026 &middot; Gruppe 17 &nbsp;|&nbsp;
+    <a href="../index.html">&larr; Zurück zur Hauptseite</a>
+</footer>
 </body>
 </html>
     """)
