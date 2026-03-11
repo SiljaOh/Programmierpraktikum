@@ -14,7 +14,17 @@ VALIDATE_JAR_PATH = os.path.join(CGI_DIR, "validateGor.jar")
 
 def get_cartoon_style(seq_str):
     mapping = {'H': '(', 'E': '>', 'C': '.', '-': ' '}
-    return "".join([mapping.get(c.upper(), '.') for c in seq_str])
+    # Wir mappen hier nicht nur das Zeichen, sondern packen es direkt in ein farbiges Span
+    result = ""
+    for c in seq_str:
+        upper_c = c.upper()
+        symbol = mapping.get(upper_c, '.')
+        if upper_c in "HEC":
+            # Wir nutzen dieselben Klassen wie für die Buchstaben
+            result += f'<span class="char-{upper_c}">{html.escape(symbol)}</span>'
+        else:
+            result += html.escape(symbol)
+    return result
 
 def get_cartoon_aligned(ps_line):
     if len(ps_line) >= 3:
@@ -252,6 +262,7 @@ HTML_HEAD = """<!DOCTYPE html>
             display:block; border:none; border-top:1px dashed var(--border);
             margin:6px 0 4px;
         }
+        
         /* Score table */
         .score-table { width:100%; border-collapse:collapse; margin-top:14px;
                        font-family:"JetBrains Mono",monospace; font-size:0.9em; }
@@ -307,6 +318,12 @@ HTML_HEAD = """<!DOCTYPE html>
         }
         .info-icon:hover .tooltip,
         .info-icon:focus .tooltip { display:block; }
+        
+        
+        /* Farben für die PS-Zeile (Helles Lila, Mittelblau, Waldgrün) */
+        .char-H { color: #ba55d3; font-weight: bold; } /* Medium Orchid (helleres Lila) */
+        .char-E { color: #1e90ff; font-weight: bold; } /* Dodger Blue */
+        .char-C { color: #2e8b57; font-weight: bold; } /* Sea Green */
 
         /* Prob-Filter Checkboxen im Ergebnis-Bereich */
         .prob-filter {
@@ -474,7 +491,7 @@ HTML_FORM = """
 
         <div class="checkbox-row" style="margin-bottom:12px">
             <input type="checkbox" name="probabilities" id="probabilities" value="1">
-            <label for="probabilities">Wahrscheinlichkeiten berechnen (Softmax-Umrechnung)</label>
+            <label for="probabilities">Benutze die Wahrscheinlichkeitsformel</label>
         </div>
 
         <div class="checkbox-row" style="margin-bottom:12px">
@@ -694,32 +711,30 @@ def main():
         print(f"<span class='seq-header'>{html.escape(header)}</span>")
 
         # Sammle Score-Zeilen (PH/PE/PC oder IH/IE/IC) um sie gemeinsam zu rendern
-        score_lines = {}   # label -> raw string after prefix
-        pending_lines = []  # alle nicht-score Zeilen vor dem flush
+        # Sammle Score-Zeilen (PH/PE/PC oder IH/IE/IC) um sie gemeinsam zu rendern
+        score_lines = {}
+        current_ps_seq = ""  # Hier speichern wir die vorhergesagte Struktur
 
         def flush_score_lines():
             if not score_lines:
                 return
-            # Baue pro Position: welche Zeile hat die höchste Ziffer?
-            # Alle Zeilen auf gleiche Länge bringen
-            rows = {}
-            for lbl, raw in score_lines.items():
-                rows[lbl] = raw  # z.B. "--------012345678--------"
 
-            # Rendern: Zeichen für Zeichen, höchste Ziffer rot
+            rows = {lbl: raw for lbl, raw in score_lines.items()}
+
             for lbl, raw in rows.items():
-                out = f'<span class="seq-line prob-line prob-row-{lbl[-1]}">'
+                # Bestimme den Ziel-Buchstaben für dieses Label (letzter Buchstabe von PH, PE, PC)
+                target_char = lbl[-1]
+
+                out = f'<span class="seq-line prob-line prob-row-{target_char}">'
                 out += f'<span class="prob-label">{html.escape(lbl)}</span> '
+
                 for pos, ch in enumerate(raw):
-                    if ch.isdigit():
-                        # Vergleiche mit gleicher Position in den anderen Zeilen
-                        my_val = int(ch)
-                        others = [int(r[pos]) for r2, r in rows.items() if r2 != lbl and pos < len(r) and r[pos].isdigit()]
-                        is_max = my_val > 0 and (not others or my_val >= max(others))
-                        if is_max:
-                            out += f'<span style="color:#c0392b">{ch}</span>'
-                        else:
-                            out += ch
+                    # Prüfe ob diese Position in der PS-Zeile existiert und mit dem Label übereinstimmt
+                    # Die PS-Zeile fängt im Raw-String erst nach dem Prefix an (index pos)
+                    is_predicted = (pos < len(current_ps_seq) and current_ps_seq[pos] == target_char)
+
+                    if ch.isdigit() and is_predicted:
+                        out += f'<span style="color:#c0392b; font-weight:bold;">{ch}</span>'
                     else:
                         out += html.escape(ch)
                 out += '</span>'
@@ -727,27 +742,49 @@ def main():
             score_lines.clear()
 
         has_prob_above = False
+        # Erster Durchlauf: Finde die PS Zeile für den Vergleich
+        for line in block[1:]:
+            if line.startswith("PS "):
+                current_ps_seq = line[3:]  # Extrahiere die Sequenz (z.B. "CCCCHHHHHH")
+
+        # Zweiter Durchlauf: Rendern
         for line in block[1:]:
             prefix = line[:3]
 
             if prefix in ("PH ", "PE ", "PC ", "IH ", "IE ", "IC "):
                 has_prob_above = True
-                lbl = prefix.strip()   # "PH", "PE" etc.
+                lbl = prefix.strip()
                 score_lines[lbl] = line[3:]
             else:
-                # Vor jeder Nicht-Score-Zeile: ausstehende Score-Zeilen rausschreiben
                 flush_score_lines()
-                if has_prob_above and line.startswith("PS "):
-                    print("<hr class='prob-section-divider'>")
-                    has_prob_above = False
+
                 if line.startswith("PS "):
-                    print(f"<span class='seq-line'>{html.escape(line)}</span>")
-                    cartoon_line = get_cartoon_aligned(line)
-                    print(f"<span class='cartoon-line'>{html.escape(cartoon_line)}</span>")
+                    if has_prob_above:
+                        print("<hr class='prob-section-divider'>")
+                        has_prob_above = False
+
+                    # 1. Die farbige PS-Zeile (Buchstaben)
+                    seq_part = line[3:]
+                    colored_ps = "PS "
+                    for char in seq_part:
+                        up_char = char.upper()
+                        cls = f"char-{up_char}" if up_char in "HEC" else ""
+                        if cls:
+                            colored_ps += f'<span class="{cls}">{html.escape(char)}</span>'
+                        else:
+                            colored_ps += html.escape(char)
+                    print(f"<span class='seq-line'>{colored_ps}</span>")
+
+                    # 2. Die farbige Cartoon-Zeile (Symbole)
+                    # WICHTIG: Hier KEIN html.escape drumherum, da get_cartoon_aligned bereits HTML liefert
+                    cartoon_html = get_cartoon_aligned(line)
+                    print(f"<span class='cartoon-line'>{cartoon_html}</span>")
                 else:
+                    # Alle anderen Zeilen (AS, etc.)
                     print(f"<span class='seq-line'>{html.escape(line)}</span>")
 
         flush_score_lines()
+
         print("</div>")
 
     b64 = base64.b64encode(res_txt.stdout.encode()).decode()
