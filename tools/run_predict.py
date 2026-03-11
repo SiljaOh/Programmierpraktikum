@@ -12,8 +12,17 @@ CGI_DIR = os.path.dirname(os.path.abspath(__file__))
 JAR_PATH          = os.path.join(CGI_DIR, "predict.jar")
 VALIDATE_JAR_PATH = os.path.join(CGI_DIR, "validateGor.jar")
 
+def get_cartoon_style(seq_str):
+    mapping = {'H': '(', 'E': '>', 'C': '.', '-': ' '}
+    return "".join([mapping.get(c.upper(), '.') for c in seq_str])
 
-def run_gor_predict(model_path, seq_path, fmt, probabilities):
+def get_cartoon_aligned(ps_line):
+    if len(ps_line) >= 3:
+        return "   " + get_cartoon_style(ps_line[3:])
+    return "   " + get_cartoon_style(ps_line)
+
+
+def run_gor_predict(model_path, seq_path, fmt, probabilities, show_scores=False):
     cmd = [
         "java", "-cp", JAR_PATH, "de.lmu.ifi.bio.gor.cli.Predict",
         "--model", model_path,
@@ -22,6 +31,8 @@ def run_gor_predict(model_path, seq_path, fmt, probabilities):
     ]
     if probabilities:
         cmd.append("--probabilities")
+    if show_scores:
+        cmd.append("--show-scores")
     try:
         return subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                               universal_newlines=True, timeout=300)
@@ -83,7 +94,36 @@ def parse_summary_scores(summary_text):
     return scores
 
 
-#html
+# ── Hilfsfunktion: Wahrscheinlichkeits-Zeile hübsch rendern ─────────────────
+def render_prob_line(line):
+    """
+    Gibt eine farbige HTML-Darstellung einer PH/PE/PC-Zeile zurück.
+    Erwartet z.B.:  PH 0.72 0.12 0.16 ...
+    """
+    prefix = line[:3]          # "PH ", "PE " oder "PC "
+    values = line[3:].split()
+
+    color_map = {
+        "PH ": "#e63946",   # rot  – Helix
+        "PE ": "#f4a261",   # orange – Strang
+        "PC ": "#457b9d",   # blau  – Coil
+    }
+    label_map = {
+        "PH ": "PH",
+        "PE ": "PE",
+        "PC ": "PC",
+    }
+    color = color_map.get(prefix, "#888")
+    label = label_map.get(prefix, prefix.strip())
+
+    # Werte als Mini-Balken (optional) – hier nur farbiger Text
+    formatted = " ".join(values)
+    return (
+        f'<span class="seq-line prob-line" style="color:{color}">'
+        f'<span class="prob-label">{html.escape(label)}</span> '
+        f'{html.escape(formatted)}</span>'
+    )
+
 
 HTML_HEAD = """<!DOCTYPE html>
 <html lang="de">
@@ -102,24 +142,28 @@ HTML_HEAD = """<!DOCTYPE html>
             --text: #1a2e2a; --text-muted: #4a6560; --card-bg: #ffffff; --border: #c5e0db;
         }
         * { box-sizing: border-box; margin: 0; padding: 0; }
-        body { font-family: "DM Sans", system-ui, sans-serif; background: var(--bio-deep);
-               color: var(--text); line-height: 1.6; min-height: 100vh; }
+       body {
+            font-family: "DM Sans", system-ui, sans-serif;
+            background: radial-gradient(circle at top right, #11594d, var(--bio-deep) 60%);
+            color: var(--text);
+            line-height: 1.6;
+            min-height: 100vh;
+        }
         body::before {
-            content: ""; position: fixed; inset: 0;
-            background:
-                linear-gradient(180deg, rgba(13,107,92,0.06) 0%, transparent 40%),
-                radial-gradient(ellipse 80% 50% at 50% -20%, rgba(42,157,143,0.15), transparent),
-                repeating-linear-gradient(0deg, transparent, transparent 32px, rgba(13,107,92,0.03) 32px, rgba(13,107,92,0.03) 33px),
-                repeating-linear-gradient(90deg, transparent, transparent 32px, rgba(13,107,92,0.03) 32px, rgba(13,107,92,0.03) 33px);
-            pointer-events: none; z-index: 0;
+            content: "";
+            position: fixed;
+            inset: 0;
+            background: linear-gradient(180deg, rgba(13,107,92,0.06) 0%, transparent 40%);
+            pointer-events: none;
+            z-index: 0;
         }
         .header {
             position: relative;
-            background: linear-gradient(160deg, var(--bio-deep) 0%, var(--bio-dark) 40%, var(--bio-green) 100%);
+            background: transparent;
             color: #fff; padding: 40px 24px 48px; text-align: center; overflow: hidden;
         }
-        .header::after { content:""; position:absolute; bottom:0; left:0; right:0; height:60px;
-            background: linear-gradient(to top, var(--bio-deep), transparent); pointer-events:none; }
+        .header::after { display: none; }
+
         .header-inner { position: relative; z-index: 1; }
         .header h1 { margin: 0 0 6px; font-size: 1.6rem; font-weight: 700; letter-spacing: 0.02em; }
         .header p  { margin: 0; opacity: 0.85; font-size: 0.95rem; }
@@ -177,12 +221,6 @@ HTML_HEAD = """<!DOCTYPE html>
         .error   { background:#fdf0ef; color:#8b2a22; border-color:#c0392b; }
         .success { background:var(--bio-green-pale); color:var(--bio-dark); border-color:var(--bio-green); }
         .info    { background:#eef5fb; color:#1a4d7a; border-color:#2980b9; }
-        .result-html-box {
-            background:#ffffff; color:#1a2e2a; padding:24px 28px; border-radius:14px;
-            font-family:"JetBrains Mono",monospace; font-size:0.95em; max-height:600px;
-            overflow-y:auto; overflow-x:auto; margin-top:14px; border:1.5px solid var(--border);
-            line-height:1.8; white-space:pre; box-shadow:0 2px 12px rgba(13,107,92,0.08);
-        }
         .result-title { font-weight:700; font-size:0.9em; color:var(--bio-green);
                         margin:20px 0 4px; text-transform:uppercase; letter-spacing:0.06em; }
         .download-btn {
@@ -191,6 +229,29 @@ HTML_HEAD = """<!DOCTYPE html>
             font-weight:700; font-size:0.92em; margin-top:14px; margin-right:8px; transition:opacity 0.2s;
         }
         .download-btn:hover { opacity:0.88; }
+        /* Sequenzblöcke */
+        .seq-block {
+            background:#fff; border:1.5px solid var(--border); border-radius:14px;
+            padding:20px 24px; margin-bottom:16px; font-family:"JetBrains Mono",monospace;
+            font-size:0.88em; line-height:1.9; overflow-x:auto;
+            box-shadow:0 2px 12px rgba(13,107,92,0.06);
+        }
+        .seq-block .seq-header {
+            font-weight:700; color:var(--bio-green); font-size:0.95em;
+            display:block; margin-bottom:6px;
+        }
+        .seq-block .seq-line { display:block; white-space:pre; }
+        .seq-block .cartoon-line {
+            display:block; white-space:pre; letter-spacing:0;
+            color:#2a9d8f; font-size:1em; margin-top:0;
+        }
+        /* Wahrscheinlichkeits-Zeilen */
+        .prob-line { font-size:1em;}
+        .prob-label { font-weight:normal; display:inline-block; width:2ch; }
+        .prob-section-divider {
+            display:block; border:none; border-top:1px dashed var(--border);
+            margin:6px 0 4px;
+        }
         /* Score table */
         .score-table { width:100%; border-collapse:collapse; margin-top:14px;
                        font-family:"JetBrains Mono",monospace; font-size:0.9em; }
@@ -202,6 +263,16 @@ HTML_HEAD = """<!DOCTYPE html>
         .score-good { color:#0d6b5c; font-weight:700; }
         .score-mid  { color:#e07b00; font-weight:600; }
         .score-low  { color:#c0392b; font-weight:600; }
+        /* Pagination */
+        .pagination { display:flex; gap:10px; margin:18px 0 10px; align-items:center; }
+        .page-btn {
+            padding:9px 20px; border:2px solid var(--border); border-radius:9px;
+            background:white; cursor:pointer; font-weight:600; font-size:0.88em;
+            color:var(--bio-green); font-family:"DM Sans",sans-serif; transition:all 0.2s;
+        }
+        .page-btn:hover:not(:disabled) { border-color:var(--bio-teal); background:var(--bio-green-pale); }
+        .page-btn:disabled { opacity:0.35; cursor:default; }
+        .page-info { font-size:0.88em; color:var(--text-muted); flex:1; text-align:center; font-weight:500; }
         /* Jmol */
         .jmol-wrap { background:#fff; border:1.5px solid var(--border); border-radius:14px;
                      padding:20px; margin-top:14px; box-shadow:0 2px 12px rgba(13,107,92,0.08); }
@@ -217,6 +288,39 @@ HTML_HEAD = """<!DOCTYPE html>
         }
         footer a { color:#9ae6d9; text-decoration:none; }
         footer a:hover { text-decoration:underline; }
+        .info-icon {
+            position:relative; display:inline-flex; align-items:center; justify-content:center;
+            width:20px; height:20px; border-radius:50%; background:var(--bio-green);
+            color:white; font-size:0.85em; font-weight:700; cursor:default;
+            font-style:normal; flex-shrink:0; user-select:none;
+        }
+        .info-icon .tooltip {
+            display:none; position:absolute; left:28px; top:50%; transform:translateY(-50%);
+            background:#1a2e2a; color:#e8f6f3; padding:18px 20px; border-radius:12px;
+            font-size:0.93em; font-weight:400; white-space:normal; z-index:100;
+            box-shadow:0 6px 28px rgba(0,0,0,0.45); line-height:1.9;
+            pointer-events:none; width:280px;
+        }
+        .info-icon .tooltip::before {
+            content:""; position:absolute; right:100%; top:50%; transform:translateY(-50%);
+            border:7px solid transparent; border-right-color:#1a2e2a;
+        }
+        .info-icon:hover .tooltip,
+        .info-icon:focus .tooltip { display:block; }
+
+        /* Prob-Filter Checkboxen im Ergebnis-Bereich */
+        .prob-filter {
+            display:flex; gap:16px; align-items:center; flex-wrap:wrap;
+            background:var(--bio-green-pale); border:1px solid var(--border);
+            border-radius:10px; padding:10px 16px; margin:10px 0 14px;
+            font-size:0.88em;
+        }
+        .prob-filter strong { color:var(--bio-green); margin-right:4px; }
+        .prob-filter label { margin:0; font-weight:500; font-size:0.93em; cursor:pointer; display:flex; align-items:center; gap:6px; }
+        .prob-filter input[type=checkbox] { width:15px; height:15px; accent-color:var(--bio-green); cursor:pointer; }
+        .ph-color { color:#e63946; font-weight:700; }
+        .pe-color { color:#f4a261; font-weight:700; }
+        .pc-color { color:#457b9d; font-weight:700; }
     </style>
     <script>
         function switchTab(tabId) {
@@ -232,6 +336,46 @@ HTML_HEAD = """<!DOCTYPE html>
             document.getElementById('ref-tab-' + tabId).classList.add('active');
             document.getElementById('ref-content-' + tabId).classList.add('active');
             document.getElementById('ref_mode').value = tabId;
+        }
+        var _currentPage = 1;
+        function showPage(p) {
+            var perPage = 5;
+            var total   = document.querySelectorAll('.seq-block').length;
+            var pages   = Math.ceil(total / perPage);
+            if (p < 1 || p > pages) return;
+            _currentPage = p;
+            document.querySelectorAll('.seq-block').forEach(function(b, i) {
+                b.style.display = (i >= (p-1)*perPage && i < p*perPage) ? 'block' : 'none';
+            });
+            var info = document.getElementById('page-info');
+            if (info) info.textContent = 'Seite ' + p + ' von ' + pages + ' (' + total + ' Sequenzen)';
+            document.getElementById('btn-prev').disabled = (p === 1);
+            document.getElementById('btn-next').disabled = (p === pages);
+        }
+        function prevPage() { showPage(_currentPage - 1); }
+        function nextPage() { showPage(_currentPage + 1); }
+
+        /* Hinweis: Wahrscheinlichkeiten → Post-Processing automatisch aus */
+        function updatePostprocHint() {
+            var probCb  = document.getElementById('probabilities');
+            var ppCb    = document.getElementById('no_postprocessing');
+            var hint    = document.getElementById('postproc-hint');
+            if (probCb && probCb.checked) {
+                if (ppCb)   ppCb.checked  = true;
+                if (ppCb)   ppCb.disabled = true;
+                if (hint)   hint.style.display = 'block';
+            } else {
+                if (ppCb)   ppCb.disabled = false;
+                if (hint)   hint.style.display = 'none';
+            }
+        }
+
+        /* Wahrscheinlichkeits-Zeilen ein-/ausblenden */
+        function toggleProb(type) {
+            var show = document.getElementById('show-p' + type).checked;
+            document.querySelectorAll('.prob-row-' + type).forEach(function(el) {
+                el.style.display = show ? 'block' : 'none';
+            });
         }
     </script>
 </head>
@@ -264,9 +408,20 @@ HTML_FORM = """
                     onclick="switchTab('upload')">FASTA hochladen</button>
         </div>
         <div class="seq-tab-content tab-content active" id="content-text">
-            <label>Aminosäuresequenz (FASTA-Format)</label>
-            <textarea name="seq_text" rows="5" placeholder=">MeinProtein&#10;ACDEFGHIKLMNPQRSTVWY..."></textarea>
-            <small>Erste Zeile mit &gt;ID, dann Sequenz</small>
+            <label style="display:flex;align-items:center;gap:7px;">
+                Aminosäuresequenz
+                <span class="info-icon" tabindex="0">&#9432;
+                    <span class="tooltip">
+                        <strong>Format 1 – mit Header:</strong><br>
+                        &gt;ProteinName<br>ACDEFGHIKLM...<br><br>
+                        <strong>Format 2 – ohne Header:</strong><br>
+                        ACDEFGHIKLM...<br><br>
+                        <strong>Mehrere Sequenzen:</strong><br>
+                        Mit Headern oder durch<br>Zeilenumbrüche trennen.
+                    </span>
+                </span>
+            </label>
+            <textarea name="seq_text" rows="5" placeholder=">MeinProtein&#10;ACDEFGHIKLMNPQRSTVWY...&#10;&#10;oder einfach Sequenz ohne Header"></textarea>
         </div>
         <div class="seq-tab-content tab-content" id="content-pdbid">
             <label>PDB ID (z.B. 1TIM)</label>
@@ -316,12 +471,23 @@ HTML_FORM = """
     <!-- 4. Optionen -->
     <div class="card">
         <div class="card-title">4. Optionen</div>
+
         <div class="checkbox-row" style="margin-bottom:12px">
             <input type="checkbox" name="probabilities" id="probabilities" value="1">
-            <label for="probabilities">Wahrscheinlichkeiten ausgeben (PH, PE, PC)</label>
+            <label for="probabilities">Wahrscheinlichkeiten berechnen (Softmax-Umrechnung)</label>
         </div>
+
         <div class="checkbox-row" style="margin-bottom:12px">
-            <input type="checkbox" name="show_jmol" id="show_jmol" value="1" checked>
+            <input type="checkbox" name="show_scores" id="show_scores" value="1">
+            <label for="show_scores">Scores ausgeben (IH/IE/IC bzw. PH/PE/PC)
+                <small style="display:inline;font-size:0.82em;color:var(--text-muted);font-weight:400;">
+                    – Post-Processing wird deaktiviert
+                </small>
+            </label>
+        </div>
+
+        <div class="checkbox-row" style="margin-bottom:4px">
+            <input type="checkbox" name="show_jmol" id="show_jmol" value="1">
             <label for="show_jmol">3D-Struktur mit JSmol anzeigen (nur bei PDB ID)</label>
         </div>
     </div>
@@ -342,7 +508,44 @@ HTML_FOOTER = """
 """
 
 
-#Main
+
+def normalize_seq_input(text):
+    lines = text.splitlines()
+    blocks = []
+    current_header = None
+    current_seq = []
+    auto_index = 1
+
+    def flush():
+        nonlocal current_header, current_seq, auto_index
+        if current_seq:
+            if current_header is None:
+                current_header = f">Seq{auto_index}"
+                auto_index += 1
+            blocks.append((current_header, "".join(current_seq)))
+            current_header = None
+            current_seq = []
+
+    for line in lines:
+        line = line.strip()
+        if not line:
+            flush()
+        elif line.startswith(">"):
+            flush()
+            current_header = line
+        else:
+            seq_clean = "".join(c for c in line if c.isalpha())
+            if seq_clean:
+                if current_header is None and current_seq:
+                    flush()
+                current_seq.append(seq_clean)
+                if current_header is None:
+                    flush()
+
+    flush()
+
+    return "\n\n".join(f"{h}\n{s}" for h, s in blocks) + "\n"
+
 
 def main():
     fs = cgi.FieldStorage()
@@ -354,9 +557,10 @@ def main():
         print(HTML_FOOTER)
         return
 
-    seq_mode      = fs.getvalue("seq_mode")      or "text"
-    ref_mode      = fs.getvalue("ref_mode")      or "none"
+    seq_mode      = fs.getvalue("seq_mode")    or "text"
+    ref_mode      = fs.getvalue("ref_mode")    or "none"
     probabilities = fs.getvalue("probabilities") == "1"
+    show_scores   = fs.getvalue("show_scores")   == "1"
     show_jmol     = fs.getvalue("show_jmol")     == "1"
 
     tmp_seq = tmp_model = tmp_ref = None
@@ -364,7 +568,6 @@ def main():
     pdb_id_used = None
     error_msg = None
 
-    # Modell
     if "model_file" in fs and fs["model_file"].filename:
         tmp_m = tempfile.NamedTemporaryFile(suffix=".txt", delete=False)
         tmp_m.write(fs["model_file"].file.read())
@@ -374,13 +577,13 @@ def main():
     else:
         error_msg = "Bitte ein Modell hochladen."
 
-    # Sequenz
     if not error_msg:
         if seq_mode == "text":
             seq_text = (fs.getvalue("seq_text") or "").strip()
             if not seq_text:
                 error_msg = "Bitte eine Sequenz eingeben."
             else:
+                seq_text = normalize_seq_input(seq_text)
                 tmp_s = tempfile.NamedTemporaryFile(suffix=".fasta", delete=False, mode='w')
                 tmp_s.write(seq_text); tmp_s.close()
                 seq_path = tmp_s.name; tmp_seq = seq_path
@@ -407,7 +610,6 @@ def main():
             else:
                 error_msg = "Bitte eine FASTA-Datei hochladen."
 
-    #Referenz
     if not error_msg and ref_mode != "none":
         if ref_mode == "upload":
             if "ref_file" in fs and fs["ref_file"].filename:
@@ -425,7 +627,6 @@ def main():
                 tmp_r.write(ref_text); tmp_r.close()
                 ref_path = tmp_r.name; tmp_ref = ref_path
 
-    #Fehler
     if error_msg:
         print(f"<div class='status-msg error'><strong>Fehler:</strong> {html.escape(error_msg)}</div>")
         for t in [tmp_seq, tmp_model, tmp_ref]:
@@ -433,23 +634,22 @@ def main():
         print(HTML_FOOTER)
         return
 
-    # Vorhersage laufen lassen
-    res = run_gor_predict(model_path, seq_path, "html", probabilities)
+    res_txt = run_gor_predict(model_path, seq_path, "txt", probabilities, show_scores)
 
-    if not isinstance(res, subprocess.CompletedProcess):
-        print(f"<div class='status-msg error'><strong>Systemfehler:</strong> {html.escape(str(res))}</div>")
+    if not isinstance(res_txt, subprocess.CompletedProcess):
+        print(f"<div class='status-msg error'><strong>Systemfehler:</strong> {html.escape(str(res_txt))}</div>")
         print(HTML_FOOTER)
         return
 
-    if res.returncode != 0 or not res.stdout.strip():
-        stderr = res.stderr
+    if res_txt.returncode != 0 or not res_txt.stdout.strip():
+        stderr = res_txt.stderr
         if "keinen gültigen FASTA-Header" in stderr or "startet nicht mit" in stderr:
             msg = "Ungültige Sequenz: FASTA-Format erwartet (&gt;ID, dann Sequenz)."
         elif "loadModel" in stderr or "NumberFormatException" in stderr or "NoSuchElementException" in stderr:
             msg = "Ungültiges Modell."
         elif "IOException" in stderr:
             msg = "Fehler beim Lesen der Eingabedatei."
-        elif not res.stdout.strip():
+        elif not res_txt.stdout.strip():
             msg = "Keine Ausgabe – Sequenz muss mindestens 17 Aminosäuren lang sein."
         else:
             msg = f"Fehler bei der Vorhersage.<br><small style='font-family:monospace'>{html.escape(stderr[:300])}</small>"
@@ -457,20 +657,103 @@ def main():
         print(HTML_FOOTER)
         return
 
-    # Vorhersage anzeigen
     print("<div class='status-msg success'><strong>Vorhersage erfolgreich!</strong></div>")
+
+    blocks = []
+    current = []
+    for line in res_txt.stdout.splitlines():
+        if line.startswith(">"):
+            if current:
+                blocks.append(current)
+            current = [line]
+        else:
+            if line.strip():
+                current.append(line)
+    if current:
+        blocks.append(current)
+
+    total    = len(blocks)
+    per_page = 5
+    num_pages = max(1, (total + per_page - 1) // per_page)
+
     print("<div class='result-title'>Vorhersage:</div>")
-    print(f"<div class='result-html-box'>{res.stdout}</div>")
 
-    # TXT Download
-    res_txt = run_gor_predict(model_path, seq_path, "txt", probabilities)
-    if isinstance(res_txt, subprocess.CompletedProcess) and res_txt.stdout.strip():
-        b64 = base64.b64encode(res_txt.stdout.encode()).decode()
-        print(f'<a href="data:text/plain;base64,{b64}" download="prediction.txt" class="download-btn">&#11015; prediction.txt herunterladen</a>')
+    if num_pages > 1:
+        print("<div class='pagination'>")
+        print("<button class='page-btn' id='btn-prev' onclick='prevPage()' disabled>&#9664; Zurück</button>")
+        print(f"<span class='page-info' id='page-info'>Seite 1 von {num_pages} ({total} Sequenzen)</span>")
+        next_disabled = " disabled" if num_pages == 1 else ""
+        print(f"<button class='page-btn' id='btn-next' onclick='nextPage()'{next_disabled}>Weiter &#9654;</button>")
+        print("</div>")
 
-    #Validierungsscores
-    if ref_path and isinstance(res_txt, subprocess.CompletedProcess) and res_txt.stdout.strip():
-        # Header normalisieren: "> 1TIM_1|Chains A, B|..." -> "> 1TIM_1"
+    for i, block in enumerate(blocks):
+        display = "block" if i < per_page else "none"
+        header  = block[0]
+
+        print(f"<div class='seq-block' style='display:{display}'>")
+        print(f"<span class='seq-header'>{html.escape(header)}</span>")
+
+        # Sammle Score-Zeilen (PH/PE/PC oder IH/IE/IC) um sie gemeinsam zu rendern
+        score_lines = {}   # label -> raw string after prefix
+        pending_lines = []  # alle nicht-score Zeilen vor dem flush
+
+        def flush_score_lines():
+            if not score_lines:
+                return
+            # Baue pro Position: welche Zeile hat die höchste Ziffer?
+            # Alle Zeilen auf gleiche Länge bringen
+            rows = {}
+            for lbl, raw in score_lines.items():
+                rows[lbl] = raw  # z.B. "--------012345678--------"
+
+            # Rendern: Zeichen für Zeichen, höchste Ziffer rot
+            for lbl, raw in rows.items():
+                out = f'<span class="seq-line prob-line prob-row-{lbl[-1]}">'
+                out += f'<span class="prob-label">{html.escape(lbl)}</span> '
+                for pos, ch in enumerate(raw):
+                    if ch.isdigit():
+                        # Vergleiche mit gleicher Position in den anderen Zeilen
+                        my_val = int(ch)
+                        others = [int(r[pos]) for r2, r in rows.items() if r2 != lbl and pos < len(r) and r[pos].isdigit()]
+                        is_max = my_val > 0 and (not others or my_val >= max(others))
+                        if is_max:
+                            out += f'<span style="color:#c0392b">{ch}</span>'
+                        else:
+                            out += ch
+                    else:
+                        out += html.escape(ch)
+                out += '</span>'
+                print(out)
+            score_lines.clear()
+
+        has_prob_above = False
+        for line in block[1:]:
+            prefix = line[:3]
+
+            if prefix in ("PH ", "PE ", "PC ", "IH ", "IE ", "IC "):
+                has_prob_above = True
+                lbl = prefix.strip()   # "PH", "PE" etc.
+                score_lines[lbl] = line[3:]
+            else:
+                # Vor jeder Nicht-Score-Zeile: ausstehende Score-Zeilen rausschreiben
+                flush_score_lines()
+                if has_prob_above and line.startswith("PS "):
+                    print("<hr class='prob-section-divider'>")
+                    has_prob_above = False
+                if line.startswith("PS "):
+                    print(f"<span class='seq-line'>{html.escape(line)}</span>")
+                    cartoon_line = get_cartoon_aligned(line)
+                    print(f"<span class='cartoon-line'>{html.escape(cartoon_line)}</span>")
+                else:
+                    print(f"<span class='seq-line'>{html.escape(line)}</span>")
+
+        flush_score_lines()
+        print("</div>")
+
+    b64 = base64.b64encode(res_txt.stdout.encode()).decode()
+    print(f'<a href="data:text/plain;base64,{b64}" download="prediction.txt" class="download-btn">&#11015; prediction.txt herunterladen</a>')
+
+    if ref_path:
         def normalize_prd(text):
             lines = []
             for line in text.splitlines():
@@ -529,7 +812,6 @@ def main():
         for t in [tmp_prd.name, tmp_sum.name, tmp_det.name]:
             if os.path.exists(t): os.unlink(t)
 
-    #JSmol
     if show_jmol and pdb_id_used:
         print("<div class='result-title'>3D-Struktur (JSmol):</div>")
         jmol_script = (
@@ -561,8 +843,6 @@ def main():
       document.getElementById("jmol_div").innerHTML = Jmol.getAppletHtml(myJmol);
     </script>""")
 
-
-    #afräumen
     for t in [tmp_seq, tmp_model, tmp_ref]:
         if t and os.path.exists(t): os.unlink(t)
 
