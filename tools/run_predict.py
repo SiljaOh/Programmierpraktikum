@@ -7,10 +7,12 @@ import os
 import cgi
 import tempfile
 import urllib.request
+import re
 
 CGI_DIR = os.path.dirname(os.path.abspath(__file__))
-JAR_PATH          = os.path.join(CGI_DIR, "predict.jar")
-VALIDATE_JAR_PATH = os.path.join(CGI_DIR, "validateGor.jar")
+JAR_PATH           = os.path.join(CGI_DIR, "predict.jar")
+VALIDATE_JAR_PATH  = os.path.join(CGI_DIR, "validateGor.jar")
+MAKE_SECLIB_PATH   = os.path.join(CGI_DIR, "get_seclib.py")
 
 def get_cartoon_style(seq_str):
     mapping = {'H': '(', 'E': '>', 'C': '.', '-': ' '}
@@ -86,8 +88,189 @@ def fetch_fasta_from_pdb(pdb_id):
         return None, str(e)
 
 
+def fetch_seclib_from_pdb(pdb_id):
+    """
+    Lädt die PDB-Datei von rcsb.org und extrahiert Sequenz + Sekundärstruktur
+    aus SEQRES, HELIX und SHEET Records. Gibt (seclib_text, error) zurück.
+    """
+    pdb_id = pdb_id.strip().upper()
+    if not pdb_id or len(pdb_id) != 4 or not pdb_id.isalnum():
+        return None, f"Ungültige PDB ID: '{pdb_id}'."
+
+    try:
+        url = f"https://files.rcsb.org/download/{pdb_id}.pdb"
+        req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
+        with urllib.request.urlopen(req, timeout=30) as resp:
+            pdb_text = resp.read().decode('utf-8', errors='replace')
+    except urllib.error.HTTPError as e:
+        return None, f"PDB '{pdb_id}' nicht gefunden (HTTP {e.code})."
+    except Exception as e:
+        return None, f"Fehler beim Laden von PDB '{pdb_id}': {e}"
+
+    # Drei-Buchstaben → Ein-Buchstaben Aminosäure-Mapping
+    aa3to1 = {
+        'ALA':'A','ARG':'R','ASN':'N','ASP':'D','CYS':'C','GLN':'Q','GLU':'E',
+        'GLY':'G','HIS':'H','ILE':'I','LEU':'L','LYS':'K','MET':'M','PHE':'F',
+        'PRO':'P','SER':'S','THR':'T','TRP':'W','TYR':'Y','VAL':'V',
+        'MSE':'M','SEC':'C','PYL':'K','HSD':'H','HSE':'H','HSP':'H',
+    }
+
+    # 1. SEQRES → Sequenz pro Chain
+    seqres = {}  # chain -> list of one-letter AA
+    for line in pdb_text.splitlines():
+        if line.startswith("SEQRES"):
+            chain = line[11].strip()
+            residues = line[19:].split()
+            if chain not in seqres:
+                seqres[chain] = []
+            for r in residues:
+                seqres[chain].append(aa3to1.get(r.upper(), 'X'))
+
+    if not seqres:
+        return None, f"PDB '{pdb_id}' enthält keine SEQRES-Einträge."
+
+    # 2. Residuennummern aus ATOM-Records pro Chain sammeln (für SS-Mapping)
+    # Wir brauchen die Reihenfolge der Residuennummern um SS zuzuordnen
+    residue_order = {}  # chain -> list of resSeq (int), dedupliziert
+    seen = {}
+    for line in pdb_text.splitlines():
+        if line.startswith("ATOM  ") or line.startswith("ATOM "):
+            try:
+                chain   = line[21]
+                res_seq = int(line[22:26].strip())
+                ins_code = line[26].strip()
+                key = (chain, res_seq, ins_code)
+                if chain not in residue_order:
+                    residue_order[chain] = []
+                    seen[chain] = set()
+                if key not in seen[chain]:
+                    seen[chain].add(key)
+                    residue_order[chain].append(res_seq)
+            except (ValueError, IndexError):
+                continue
+
+    # 3. HELIX Records → (chain, start_res, end_res)
+    helices = []
+    for line in pdb_text.splitlines():
+        if line.startswith("HELIX "):
+            try:
+                chain_h = line[19]
+                start   = int(line[21:25].strip())
+                end     = int(line[33:37].strip())
+                helices.append((chain_h, start, end))
+            except (ValueError, IndexError):
+                continue
+
+    # 4. SHEET Records → (chain, start_res, end_res)
+    sheets = []
+    for line in pdb_text.splitlines():
+        if line.startswith("SHEET "):
+            try:
+                chain_s = line[21]
+                start   = int(line[22:26].strip())
+                end     = int(line[33:37].strip())
+                sheets.append((chain_s, start, end))
+            except (ValueError, IndexError):
+                continue
+
+    def get_ss_for_residue(chain, res_num):
+        for (c, s, e) in helices:
+            if c == chain and s <= res_num <= e:
+                return 'H'
+        for (c, s, e) in sheets:
+            if c == chain and s <= res_num <= e:
+                return 'E'
+        return 'C'
+
+    # 5. seclib-Text zusammenbauen
+    seclib_lines = []
+    for chain in sorted(seqres.keys()):
+        seq = "".join(seqres[chain])
+        if len(seq) < 5:
+            continue
+
+        res_nums = residue_order.get(chain, [])
+
+        if res_nums and len(res_nums) == len(seq):
+            # Exaktes Mapping möglich
+            ss = "".join(get_ss_for_residue(chain, rn) for rn in res_nums)
+        elif res_nums:
+            # Längen passen nicht exakt – SS nach Reihenfolge der ATOM-Residuen,
+            # dann auffüllen/kürzen auf SEQRES-Länge
+            ss_atoms = "".join(get_ss_for_residue(chain, rn) for rn in res_nums)
+            if len(ss_atoms) >= len(seq):
+                ss = ss_atoms[:len(seq)]
+            else:
+                ss = ss_atoms + "C" * (len(seq) - len(ss_atoms))
+        else:
+            # Keine ATOM-Records für diese Chain → alles Coil
+            ss = "C" * len(seq)
+
+        seclib_lines.append(f"> {pdb_id}_{chain}")
+        seclib_lines.append(f"AS {seq}")
+        seclib_lines.append(f"SS {ss}")
+        seclib_lines.append("")
+
+    if not seclib_lines:
+        return None, f"Keine verwertbaren Chains in PDB '{pdb_id}' gefunden."
+
+    return "\n".join(seclib_lines), None
+
+
+def fetch_seclib_via_script(pdb_id):
+    """Lädt PDB-Datei von rcsb.org und konvertiert sie mit make_seclib.py zu .seclib."""
+    pdb_id = pdb_id.strip().upper()
+    if not pdb_id or len(pdb_id) != 4 or not pdb_id.isalnum():
+        return None, f"Ungültige PDB ID: '{pdb_id}'."
+
+    if not os.path.exists(MAKE_SECLIB_PATH):
+        return None, "make_seclib.py nicht gefunden – bitte in den CGI-Ordner hochladen."
+
+    # 1. PDB-Datei herunterladen
+    tmp_pdb = tempfile.NamedTemporaryFile(suffix=".pdb", delete=False, mode='wb', prefix=pdb_id + "_")
+    tmp_pdb.close()
+    url = f"https://files.rcsb.org/download/{pdb_id}.pdb"
+    try:
+        req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
+        with urllib.request.urlopen(req, timeout=30) as resp:
+            data = resp.read()
+            if len(data) < 100:
+                os.unlink(tmp_pdb.name)
+                return None, f"PDB ID '{pdb_id}' lieferte keine Daten (existiert sie?)."
+            with open(tmp_pdb.name, 'wb') as f:
+                f.write(data)
+    except urllib.error.HTTPError as e:
+        os.unlink(tmp_pdb.name)
+        return None, f"HTTP {e.code}: PDB '{pdb_id}' nicht gefunden."
+    except Exception as e:
+        os.unlink(tmp_pdb.name)
+        return None, f"PDB-Download fehlgeschlagen: {e}"
+
+    # 2. make_seclib.py aufrufen → erzeugt .seclib
+    tmp_seclib = tempfile.NamedTemporaryFile(suffix=".seclib", delete=False, mode='w')
+    tmp_seclib.close()
+    cmd = ["python3", MAKE_SECLIB_PATH, "--PDB", tmp_pdb.name, "--output", tmp_seclib.name]
+    try:
+        result = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True, timeout=60)
+    except Exception as e:
+        os.unlink(tmp_pdb.name)
+        return None, f"make_seclib.py Fehler: {e}"
+    finally:
+        if os.path.exists(tmp_pdb.name):
+            os.unlink(tmp_pdb.name)
+
+    if result.returncode != 0:
+        return None, f"make_seclib.py Fehler: {result.stderr[:300]}"
+    if not os.path.exists(tmp_seclib.name) or os.path.getsize(tmp_seclib.name) == 0:
+        return None, f"make_seclib.py hat keine Einträge erzeugt für '{pdb_id}'. Enthält die PDB-Datei ATOM-Einträge?"
+
+    # Inhalt lesen für spätere Validierung
+    with open(tmp_seclib.name, 'r') as f:
+        content = f.read()
+    return tmp_seclib.name, content   # (pfad, rohtext)
+
+
 def parse_summary_scores(summary_text):
-    """Liest Mean-Werte aus Summary-Text."""
     scores = {}
     for line in summary_text.splitlines():
         for key in ("q3", "SOV", "qObs_H", "qObs_E", "qObs_C", "SOV_H", "SOV_E", "SOV_C"):
@@ -102,18 +285,152 @@ def parse_summary_scores(summary_text):
     return scores
 
 
-def render_prob_line(line):
-    """
-    Gibt eine farbige HTML-Darstellung einer PH/PE/PC-Zeile zurück.
-    Erwartet z.B.:  PH 0.72 0.12 0.16 ...
-    """
-    prefix = line[:3]         
-    values = line[3:].split()
+# ── Referenzstruktur-Validierung ─────────────────────────────────────────────
 
+def parse_seclib(text):
+    """
+    Parst eine .seclib/.db Datei.
+    Erwartet Blöcke wie:
+        > ID
+        AS ACDEF...
+        SS HHHCC...
+    Gibt zurück: list of (id, seq, ss)
+    """
+    entries = []
+    lines = text.splitlines()
+    i = 0
+    while i < len(lines):
+        line = lines[i].strip()
+        if line.startswith(">"):
+            entry_id = line[1:].strip().split()[0]
+            seq = ""
+            ss  = ""
+            i += 1
+            while i < len(lines) and not lines[i].strip().startswith(">"):
+                l = lines[i].strip()
+                if l.startswith("AS "):
+                    seq = l[3:].strip()
+                elif l.startswith("SS ") or l.startswith("PS "):
+                    ss = l[3:].strip()
+                i += 1
+            if seq or ss:
+                entries.append((entry_id, seq, ss))
+        else:
+            i += 1
+    return entries
+
+
+def parse_prediction_output(text):
+    """
+    Parst die Predict-Ausgabe.
+    Erwartet:
+        > ID
+        AS ACDEF...
+        PS HHHCC...
+    Gibt zurück: list of (id, seq, ps)
+    """
+    entries = []
+    lines = text.splitlines()
+    i = 0
+    while i < len(lines):
+        line = lines[i].strip()
+        if line.startswith(">"):
+            entry_id = line[1:].strip().split()[0]
+            seq = ""
+            ps  = ""
+            i += 1
+            while i < len(lines) and not lines[i].strip().startswith(">"):
+                l = lines[i].strip()
+                if l.startswith("AS "):
+                    seq = l[3:].strip()
+                elif l.startswith("PS "):
+                    ps = l[3:].strip().replace("-", "C")
+                i += 1
+            if seq or ps:
+                entries.append((entry_id, seq, ps))
+        else:
+            i += 1
+    return entries
+
+
+def validate_ref_vs_pred(ref_entries, pred_entries):
+    """
+    Prüft ob Referenz und Prediction kompatibel sind.
+    Gibt (ok: bool, warnings: list[str], matched: list[(pred_id, ref_id)]) zurück.
+    """
+    warnings = []
+    matched  = []
+
+    if not ref_entries:
+        return False, ["Referenzdatei enthält keine gültigen Einträge (Format: > ID, AS ..., SS ...)."], []
+
+    if not pred_entries:
+        return False, ["Vorhersage enthält keine gültigen Einträge."], []
+
+    # Versuche IDs zu matchen (exakt oder Präfix)
+    ref_by_id = {e[0].lower(): e for e in ref_entries}
+
+    unmatched_pred = []
+    for pid, pseq, pss in pred_entries:
+        pid_short = pid.lower().split("|")[0].split("_")[0]
+        # Suche: exakt, dann Präfix
+        ref = ref_by_id.get(pid.lower()) or ref_by_id.get(pid_short)
+        if ref is None:
+            # Versuche umgekehrt: ref-id ist Präfix von pred-id
+            for rid in ref_by_id:
+                if pid.lower().startswith(rid) or rid.startswith(pid_short):
+                    ref = ref_by_id[rid]
+                    break
+        if ref is None:
+            unmatched_pred.append(pid)
+        else:
+            rid, rseq, rss = ref
+            # Längencheck
+            pred_len = len(pss.replace("-",""))
+            ref_len  = len(rss.replace("-",""))
+            if pred_len != ref_len:
+                warnings.append(
+                    f"Sequenz <strong>{html.escape(pid)}</strong>: "
+                    f"Vorhersage hat {pred_len} Zeichen, Referenz hat {ref_len} Zeichen – "
+                    f"Validierung für diese Sequenz wird übersprungen."
+                )
+            else:
+                matched.append((pid, rid))
+
+    if unmatched_pred:
+        id_list = ", ".join(html.escape(x) for x in unmatched_pred[:5])
+        if len(unmatched_pred) > 5:
+            id_list += f" … (+{len(unmatched_pred)-5} weitere)"
+        warnings.append(
+            f"Folgende Sequenzen aus der Vorhersage wurden in der Referenz <strong>nicht gefunden</strong>: {id_list}. "
+            f"Bitte sicherstellen, dass die IDs übereinstimmen."
+        )
+
+    # Prüfe ob SS-Zeile valide Zeichen enthält
+    valid_ss_chars = set("HEChec-")
+    for rid, rseq, rss in ref_entries:
+        invalid = set(rss) - valid_ss_chars
+        if invalid:
+            warnings.append(
+                f"Referenz <strong>{html.escape(rid)}</strong>: "
+                f"Ungültige Zeichen in SS-Zeile: {', '.join(html.escape(c) for c in invalid)}. "
+                f"Erlaubt: H, E, C."
+            )
+
+    if not matched and not warnings:
+        warnings.append("Keine passenden Sequenzen zwischen Vorhersage und Referenz gefunden.")
+
+    ok = len(matched) > 0
+    return ok, warnings, matched
+
+
+def render_prob_line(line):
+    prefix = line[:3]
+    values = line[3:].split()
     color_map = {
-        "PH ": "#e63946",   
-        "PE ": "#f4a261",  
-        "PC ": "#457b9d",   
+        "PH ": "#e63946",
+        "PE ": "#f4a261",
+        "PC ": "#457b9d",
     }
     label_map = {
         "PH ": "PH",
@@ -122,7 +439,6 @@ def render_prob_line(line):
     }
     color = color_map.get(prefix, "#888")
     label = label_map.get(prefix, prefix.strip())
-
     formatted = " ".join(values)
     return (
         f'<span class="seq-line prob-line" style="color:{color}">'
@@ -148,7 +464,7 @@ HTML_HEAD = """<!DOCTYPE html>
             --text: #1a2e2a; --text-muted: #4a6560; --card-bg: #ffffff; --border: #c5e0db;
         }
         * { box-sizing: border-box; margin: 0; padding: 0; }
-       body {
+        body {
             font-family: "DM Sans", system-ui, sans-serif;
             background: radial-gradient(circle at top right, #11594d, var(--bio-deep) 60%);
             color: var(--text);
@@ -169,7 +485,6 @@ HTML_HEAD = """<!DOCTYPE html>
             color: #fff; padding: 40px 24px 48px; text-align: center; overflow: hidden;
         }
         .header::after { display: none; }
-
         .header-inner { position: relative; z-index: 1; }
         .header h1 { margin: 0 0 6px; font-size: 1.6rem; font-weight: 700; letter-spacing: 0.02em; }
         .header p  { margin: 0; opacity: 0.85; font-size: 0.95rem; }
@@ -185,11 +500,12 @@ HTML_HEAD = """<!DOCTYPE html>
                 padding:24px 24px 20px; margin-bottom:20px; }
         .card-title { font-size:0.78em; font-weight:700; text-transform:uppercase;
                       letter-spacing:0.08em; color:var(--bio-green); margin-bottom:16px; }
-        .tab-buttons { display:flex; gap:8px; margin-bottom:18px; }
+        .tab-buttons { display:flex; gap:8px; margin-bottom:18px; flex-wrap:wrap; }
         .tab-btn {
             flex:1; padding:9px 12px; border:2px solid var(--border); border-radius:10px;
             background:white; cursor:pointer; font-weight:600; font-size:0.88em;
             color:var(--bio-green); font-family:"DM Sans",sans-serif; transition:all 0.2s;
+            min-width:100px;
         }
         .tab-btn:hover  { border-color:var(--bio-teal); background:var(--bio-green-pale); }
         .tab-btn.active { border-color:var(--bio-green); background:var(--bio-green); color:white; }
@@ -227,6 +543,7 @@ HTML_HEAD = """<!DOCTYPE html>
         .error   { background:#fdf0ef; color:#8b2a22; border-color:#c0392b; }
         .success { background:var(--bio-green-pale); color:var(--bio-dark); border-color:var(--bio-green); }
         .info    { background:#eef5fb; color:#1a4d7a; border-color:#2980b9; }
+        .warning { background:#fffbec; color:#7a5500; border-color:#e0a800; }
         .result-title { font-weight:700; font-size:0.9em; color:var(--bio-green);
                         margin:20px 0 4px; text-transform:uppercase; letter-spacing:0.06em; }
         .download-btn {
@@ -235,7 +552,6 @@ HTML_HEAD = """<!DOCTYPE html>
             font-weight:700; font-size:0.92em; margin-top:14px; margin-right:8px; transition:opacity 0.2s;
         }
         .download-btn:hover { opacity:0.88; }
-        /* Sequenzblöcke */
         .seq-block {
             background:#fff; border:1.5px solid var(--border); border-radius:14px;
             padding:20px 24px; margin-bottom:16px; font-family:"JetBrains Mono",monospace;
@@ -251,15 +567,12 @@ HTML_HEAD = """<!DOCTYPE html>
             display:block; white-space:pre; letter-spacing:0;
             color:#2a9d8f; font-size:1em; margin-top:0;
         }
-        /* Wahrscheinlichkeits-Zeilen */
         .prob-line { font-size:1em;}
         .prob-label { font-weight:normal; display:inline-block; width:2ch; }
         .prob-section-divider {
             display:block; border:none; border-top:1px dashed var(--border);
             margin:6px 0 4px;
         }
-        
-        /* Score table */
         .score-table { width:100%; border-collapse:collapse; margin-top:14px;
                        font-family:"JetBrains Mono",monospace; font-size:0.9em; }
         .score-table th { background:var(--bio-green); color:white; padding:10px 16px;
@@ -270,7 +583,6 @@ HTML_HEAD = """<!DOCTYPE html>
         .score-good { color:#0d6b5c; font-weight:700; }
         .score-mid  { color:#e07b00; font-weight:600; }
         .score-low  { color:#c0392b; font-weight:600; }
-        /* Pagination */
         .pagination { display:flex; gap:10px; margin:18px 0 10px; align-items:center; }
         .page-btn {
             padding:9px 20px; border:2px solid var(--border); border-radius:9px;
@@ -280,7 +592,6 @@ HTML_HEAD = """<!DOCTYPE html>
         .page-btn:hover:not(:disabled) { border-color:var(--bio-teal); background:var(--bio-green-pale); }
         .page-btn:disabled { opacity:0.35; cursor:default; }
         .page-info { font-size:0.88em; color:var(--text-muted); flex:1; text-align:center; font-weight:500; }
-        /* Jmol */
         .jmol-wrap { background:#fff; border:1.5px solid var(--border); border-radius:14px;
                      padding:20px; margin-top:14px; box-shadow:0 2px 12px rgba(13,107,92,0.08); }
         .jmol-wrap h4 { font-size:0.82em; font-weight:700; text-transform:uppercase;
@@ -306,7 +617,7 @@ HTML_HEAD = """<!DOCTYPE html>
             background:#1a2e2a; color:#e8f6f3; padding:18px 20px; border-radius:12px;
             font-size:0.93em; font-weight:400; white-space:normal; z-index:100;
             box-shadow:0 6px 28px rgba(0,0,0,0.45); line-height:1.9;
-            pointer-events:none; width:280px;
+            pointer-events:none; width:300px;
         }
         .info-icon .tooltip::before {
             content:""; position:absolute; right:100%; top:50%; transform:translateY(-50%);
@@ -314,14 +625,9 @@ HTML_HEAD = """<!DOCTYPE html>
         }
         .info-icon:hover .tooltip,
         .info-icon:focus .tooltip { display:block; }
-        
-        
-        /* Farben für die PS-Zeile (Helles Lila, Mittelblau, Waldgrün) */
-        .char-H { color: #ba55d3; font-weight: bold; } /* Medium Orchid (helleres Lila) */
-        .char-E { color: #1e90ff; font-weight: bold; } /* Dodger Blue */
-        .char-C { color: #2e8b57; font-weight: bold; } /* Sea Green */
-
-        /* Prob-Filter Checkboxen im Ergebnis-Bereich */
+        .char-H { color: #ba55d3; font-weight: bold; }
+        .char-E { color: #1e90ff; font-weight: bold; }
+        .char-C { color: #2e8b57; font-weight: bold; }
         .prob-filter {
             display:flex; gap:16px; align-items:center; flex-wrap:wrap;
             background:var(--bio-green-pale); border:1px solid var(--border);
@@ -334,6 +640,17 @@ HTML_HEAD = """<!DOCTYPE html>
         .ph-color { color:#e63946; font-weight:700; }
         .pe-color { color:#f4a261; font-weight:700; }
         .pc-color { color:#457b9d; font-weight:700; }
+
+        /* Ref-Validierungs-Badge */
+        .ref-check-badge {
+            display:inline-block; padding:3px 10px; border-radius:20px;
+            font-size:0.8em; font-weight:700; margin-left:8px; vertical-align:middle;
+        }
+        .ref-check-ok   { background:#d4ede8; color:#0d6b5c; }
+        .ref-check-warn { background:#fff3cd; color:#856404; }
+        .ref-check-fail { background:#fdf0ef; color:#8b2a22; }
+        .validation-warnings { margin:10px 0; }
+        .validation-warnings li { margin-bottom:6px; }
     </style>
     <script>
         function switchTab(tabId) {
@@ -368,7 +685,6 @@ HTML_HEAD = """<!DOCTYPE html>
         function prevPage() { showPage(_currentPage - 1); }
         function nextPage() { showPage(_currentPage + 1); }
 
-        /* Hinweis: Wahrscheinlichkeiten → Post-Processing automatisch aus */
         function updatePostprocHint() {
             var probCb  = document.getElementById('probabilities');
             var ppCb    = document.getElementById('no_postprocessing');
@@ -383,7 +699,6 @@ HTML_HEAD = """<!DOCTYPE html>
             }
         }
 
-        /* Wahrscheinlichkeits-Zeilen ein-/ausblenden */
         function toggleProb(type) {
             var show = document.getElementById('show-p' + type).checked;
             document.querySelectorAll('.prob-row-' + type).forEach(function(el) {
@@ -430,7 +745,7 @@ HTML_FORM = """
                         <strong>Format 2 – ohne Header:</strong><br>
                         ACDEFGHIKLM...<br><br>
                         <strong>Mehrere Sequenzen:</strong><br>
-                        Mit Headern oder durch<br>Zeilenumbrüche trennen.
+                        Mit Headern oder durch Zeilenumbrüche trennen.
                     </span>
                 </span>
             </label>
@@ -458,10 +773,24 @@ HTML_FORM = """
 
     <!-- 3. Referenzstruktur (optional) -->
     <div class="card">
-        <div class="card-title">3. Referenzstruktur (optional) &ndash; für Q3 &amp; SOV Scores</div>
+        <div class="card-title">
+            3. Referenzstruktur (optional) &ndash; für Q3 &amp; SOV Scores
+            <span class="info-icon" tabindex="0" style="margin-left:6px;">&#9432;
+                <span class="tooltip">
+                    <strong>Erlaubte Formate:</strong><br>
+                    <strong>.seclib / .txt:</strong> Textformat mit &gt;ID, AS ..., SS ...<br>
+                    <strong>.db:</strong> Datenbankformat (gleiche Struktur wie .seclib)<br><br>
+                    Die IDs müssen mit den Vorhersage-IDs übereinstimmen.<br>
+                    Die SS-Zeile darf nur H, E, C enthalten.<br><br>
+                    Das Tool prüft automatisch ob Referenz und Vorhersage zueinander passen.
+                </span>
+            </span>
+        </div>
         <div class="tab-buttons">
             <button type="button" class="ref-tab-btn tab-btn active" id="ref-tab-none"
                     onclick="switchRefTab('none')">Keine</button>
+            <button type="button" class="ref-tab-btn tab-btn" id="ref-tab-pdbid"
+                    onclick="switchRefTab('pdbid')">PDB ID</button>
             <button type="button" class="ref-tab-btn tab-btn" id="ref-tab-upload"
                     onclick="switchRefTab('upload')">Datei hochladen</button>
             <button type="button" class="ref-tab-btn tab-btn" id="ref-tab-text"
@@ -470,14 +799,44 @@ HTML_FORM = """
         <div class="ref-tab-content tab-content active" id="ref-content-none">
             <small style="margin-top:0">Kein Vergleich – nur Vorhersage anzeigen.</small>
         </div>
+        <div class="ref-tab-content tab-content" id="ref-content-pdbid">
+            <label style="display:flex;align-items:center;gap:7px;">
+                PDB ID als Referenz
+                <span class="info-icon" tabindex="0">&#9432;
+                    <span class="tooltip">
+                        Die PDB-Datei wird automatisch von rcsb.org geladen und mit
+                        <strong>make_seclib.py</strong> in eine Referenzstruktur umgewandelt.<br><br>
+                        Voraussetzung: <strong>make_seclib.py</strong> muss im CGI-Ordner liegen.<br><br>
+                        Die Sekundärstruktur wird aus den HELIX/SHEET-Einträgen der PDB-Datei extrahiert.
+                    </span>
+                </span>
+            </label>
+            <input type="text" name="ref_pdb_id" placeholder="z.B. 1TIM, 2HHB...">
+            <small>4-stellige PDB ID – Struktur wird automatisch heruntergeladen und verglichen.</small>
+        </div>
         <div class="ref-tab-content tab-content" id="ref-content-upload">
-            <label>Referenz-Datei (.seclib)</label>
-            <input type="file" name="ref_file" accept=".seclib,.txt">
-            <small>Bekannte Sekundärstruktur im seclib-Format</small>
+            <label style="display:flex;align-items:center;gap:7px;">
+                Referenz-Datei hochladen
+                <span class="info-icon" tabindex="0">&#9432;
+                    <span class="tooltip">
+                        <strong>Unterstützte Formate:</strong><br>
+                        <strong>.seclib</strong> – Standard-Format<br>
+                        <strong>.db</strong> – Datenbankdatei (gleiches Format)<br>
+                        <strong>.txt</strong> – Textdatei mit gleichem Inhalt<br><br>
+                        Jeder Eintrag braucht:<br>
+                        &gt; ProteinID<br>
+                        AS ACDEF...<br>
+                        SS HHHCC...
+                    </span>
+                </span>
+            </label>
+            <input type="file" name="ref_file" accept=".seclib,.db,.txt">
+            <small>Erlaubte Formate: .seclib, .db, .txt</small>
         </div>
         <div class="ref-tab-content tab-content" id="ref-content-text">
             <label>Referenz einfügen</label>
             <textarea name="ref_text" rows="5" placeholder="&gt; ProteinID&#10;AS ACDEFG...&#10;SS HHHCCC..."></textarea>
+            <small>Format: &gt;ID, dann AS (Sequenz), dann SS (Struktur: H/E/C)</small>
         </div>
     </div>
 
@@ -519,7 +878,6 @@ HTML_FOOTER = """
 </body>
 </html>
 """
-
 
 
 def normalize_seq_input(text):
@@ -623,21 +981,53 @@ def main():
             else:
                 error_msg = "Bitte eine FASTA-Datei hochladen."
 
+    # ── Referenzstruktur laden ────────────────────────────────────────────────
+    ref_text_raw = None  # Rohinhalt der Referenzdatei für spätere Validierung
+
     if not error_msg and ref_mode != "none":
-        if ref_mode == "upload":
+        if ref_mode == "pdbid":
+            ref_pdb_id = (fs.getvalue("ref_pdb_id") or "").strip().upper()
+            if not ref_pdb_id:
+                error_msg = "Bitte eine PDB ID für die Referenzstruktur eingeben."
+            else:
+                print(f"<div class='status-msg info'>Lade Referenz-PDB <strong>{html.escape(ref_pdb_id)}</strong> und erzeuge Sekundärstruktur…</div>")
+                result = fetch_seclib_via_script(ref_pdb_id)
+                if result[0] is None:
+                    # Fehler: result = (None, fehlermeldung)
+                    error_msg = result[1]
+                else:
+                    ref_path, ref_text_raw = result
+                    tmp_ref = ref_path
+
+        elif ref_mode == "upload":
             if "ref_file" in fs and fs["ref_file"].filename:
-                tmp_r = tempfile.NamedTemporaryFile(suffix=".seclib", delete=False)
-                tmp_r.write(fs["ref_file"].file.read()); tmp_r.close()
-                ref_path = tmp_r.name; tmp_ref = ref_path
+                fname  = fs["ref_file"].filename
+                suffix = os.path.splitext(fname)[1].lower()
+                allowed_ref = {'.seclib', '.db', '.txt'}
+                if suffix not in allowed_ref:
+                    error_msg = (
+                        f"Ungültiges Referenzformat '{html.escape(suffix)}'. "
+                        f"Erlaubt: .seclib, .db, .txt"
+                    )
+                else:
+                    raw_bytes = fs["ref_file"].file.read()
+                    try:
+                        ref_text_raw = raw_bytes.decode('utf-8')
+                    except UnicodeDecodeError:
+                        ref_text_raw = raw_bytes.decode('latin-1')
+                    tmp_r = tempfile.NamedTemporaryFile(suffix=".seclib", delete=False, mode='w', encoding='utf-8')
+                    tmp_r.write(ref_text_raw); tmp_r.close()
+                    ref_path = tmp_r.name; tmp_ref = ref_path
             else:
                 error_msg = "Bitte eine Referenz-Datei hochladen."
+
         elif ref_mode == "text":
-            ref_text = (fs.getvalue("ref_text") or "").strip()
-            if not ref_text:
+            ref_text_raw = (fs.getvalue("ref_text") or "").strip()
+            if not ref_text_raw:
                 error_msg = "Bitte Referenz-Inhalt einfügen."
             else:
                 tmp_r = tempfile.NamedTemporaryFile(suffix=".seclib", delete=False, mode='w')
-                tmp_r.write(ref_text); tmp_r.close()
+                tmp_r.write(ref_text_raw); tmp_r.close()
                 ref_path = tmp_r.name; tmp_ref = ref_path
 
     if error_msg:
@@ -672,6 +1062,35 @@ def main():
 
     print("<div class='status-msg success'><strong>Vorhersage erfolgreich!</strong></div>")
 
+    # ── Referenzstruktur-Kompatibilitätsprüfung ───────────────────────────────
+    ref_ok = False
+    ref_warnings = []
+    ref_matched  = []
+
+    if ref_path and ref_text_raw:
+        ref_entries  = parse_seclib(ref_text_raw)
+        pred_entries = parse_prediction_output(res_txt.stdout)
+        ref_ok, ref_warnings, ref_matched = validate_ref_vs_pred(ref_entries, pred_entries)
+
+        if ref_ok:
+            badge = f'<span class="ref-check-badge ref-check-ok">✓ {len(ref_matched)} Sequenz(en) kompatibel</span>'
+            print(f"<div class='status-msg success'><strong>Referenzstruktur geprüft</strong> {badge}<br>"
+                  f"Die Referenz passt zur Vorhersage und kann für die Validierung verwendet werden.</div>")
+        else:
+            badge = '<span class="ref-check-badge ref-check-fail">✗ Nicht kompatibel</span>'
+            print(f"<div class='status-msg warning'><strong>Referenzstruktur-Problem</strong> {badge}</div>")
+
+        if ref_warnings:
+            print("<div class='status-msg warning'><strong>Hinweise zur Referenz:</strong><ul class='validation-warnings'>")
+            for w in ref_warnings:
+                print(f"<li>{w}</li>")
+            print("</ul></div>")
+
+        if not ref_ok:
+            print("<div class='status-msg info'>Die Validierung wird übersprungen, da Referenz und Vorhersage nicht kompatibel sind. "
+                  "Bitte IDs und Sequenzlängen prüfen.</div>")
+
+    # ── Ergebnisse rendern ────────────────────────────────────────────────────
     blocks = []
     current = []
     for line in res_txt.stdout.splitlines():
@@ -707,24 +1126,18 @@ def main():
         print(f"<span class='seq-header'>{html.escape(header)}</span>")
 
         score_lines = {}
-        current_ps_seq = ""  
+        current_ps_seq = ""
 
         def flush_score_lines():
             if not score_lines:
                 return
-
             rows = {lbl: raw for lbl, raw in score_lines.items()}
-
             for lbl, raw in rows.items():
                 target_char = lbl[-1]
-
                 out = f'<span class="seq-line prob-line prob-row-{target_char}">'
                 out += f'<span class="prob-label">{html.escape(lbl)}</span> '
-
                 for pos, ch in enumerate(raw):
-                    
                     is_predicted = (pos < len(current_ps_seq) and current_ps_seq[pos] == target_char)
-
                     if ch.isdigit() and is_predicted:
                         out += f'<span style="color:#c0392b; font-weight:bold;">{ch}</span>'
                     else:
@@ -736,23 +1149,20 @@ def main():
         has_prob_above = False
         for line in block[1:]:
             if line.startswith("PS "):
-                current_ps_seq = line[3:]  
+                current_ps_seq = line[3:]
 
         for line in block[1:]:
             prefix = line[:3]
-
             if prefix in ("PH ", "PE ", "PC ", "IH ", "IE ", "IC "):
                 has_prob_above = True
                 lbl = prefix.strip()
                 score_lines[lbl] = line[3:]
             else:
                 flush_score_lines()
-
                 if line.startswith("PS "):
                     if has_prob_above:
                         print("<hr class='prob-section-divider'>")
                         has_prob_above = False
-
                     seq_part = line[3:]
                     colored_ps = "PS "
                     for char in seq_part:
@@ -763,21 +1173,19 @@ def main():
                         else:
                             colored_ps += html.escape(char)
                     print(f"<span class='seq-line'>{colored_ps}</span>")
-
-                    
                     cartoon_html = get_cartoon_aligned(line)
                     print(f"<span class='cartoon-line'>{cartoon_html}</span>")
                 else:
                     print(f"<span class='seq-line'>{html.escape(line)}</span>")
 
         flush_score_lines()
-
         print("</div>")
 
     b64 = base64.b64encode(res_txt.stdout.encode()).decode()
     print(f'<a href="data:text/plain;base64,{b64}" download="prediction.txt" class="download-btn">&#11015; prediction.txt herunterladen</a>')
 
-    if ref_path:
+    # ── Validierung (nur wenn Referenz kompatibel) ────────────────────────────
+    if ref_path and ref_ok:
         def normalize_prd(text):
             lines = []
             for line in text.splitlines():
@@ -831,10 +1239,17 @@ def main():
                 b64d = base64.b64encode(det_txt.encode()).decode()
                 print(f'<a href="data:text/plain;base64,{b64d}" download="validation_detailed.txt" class="download-btn">&#11015; Details</a>')
         else:
-            print("<div class='status-msg info'>Validierung nicht möglich – Formate prüfen.</div>")
+            err_detail = ""
+            if isinstance(val_res, subprocess.CompletedProcess) and val_res.stderr:
+                err_detail = f"<br><small style='font-family:monospace'>{html.escape(val_res.stderr[:200])}</small>"
+            print(f"<div class='status-msg warning'>Validierung nicht möglich – trotz kompatibler Referenz. Bitte Formate prüfen.{err_detail}</div>")
 
         for t in [tmp_prd.name, tmp_sum.name, tmp_det.name]:
             if os.path.exists(t): os.unlink(t)
+
+    elif ref_path and not ref_ok:
+        # Validierung wurde wegen Inkompatibilität übersprungen – bereits oben gemeldet
+        pass
 
     if show_jmol and pdb_id_used:
         print("<div class='result-title'>3D-Struktur (JSmol):</div>")
@@ -875,5 +1290,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
-
