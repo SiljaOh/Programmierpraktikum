@@ -14,13 +14,11 @@ VALIDATE_JAR_PATH = os.path.join(CGI_DIR, "validateGor.jar")
 
 def get_cartoon_style(seq_str):
     mapping = {'H': '(', 'E': '>', 'C': '.', '-': ' '}
-    # Wir mappen hier nicht nur das Zeichen, sondern packen es direkt in ein farbiges Span
     result = ""
     for c in seq_str:
         upper_c = c.upper()
         symbol = mapping.get(upper_c, '.')
         if upper_c in "HEC":
-            # Wir nutzen dieselben Klassen wie für die Buchstaben
             result += f'<span class="char-{upper_c}">{html.escape(symbol)}</span>'
         else:
             result += html.escape(symbol)
@@ -104,19 +102,18 @@ def parse_summary_scores(summary_text):
     return scores
 
 
-# ── Hilfsfunktion: Wahrscheinlichkeits-Zeile hübsch rendern ─────────────────
 def render_prob_line(line):
     """
     Gibt eine farbige HTML-Darstellung einer PH/PE/PC-Zeile zurück.
     Erwartet z.B.:  PH 0.72 0.12 0.16 ...
     """
-    prefix = line[:3]          # "PH ", "PE " oder "PC "
+    prefix = line[:3]         
     values = line[3:].split()
 
     color_map = {
-        "PH ": "#e63946",   # rot  – Helix
-        "PE ": "#f4a261",   # orange – Strang
-        "PC ": "#457b9d",   # blau  – Coil
+        "PH ": "#e63946",   
+        "PE ": "#f4a261",  
+        "PC ": "#457b9d",   
     }
     label_map = {
         "PH ": "PH",
@@ -126,7 +123,6 @@ def render_prob_line(line):
     color = color_map.get(prefix, "#888")
     label = label_map.get(prefix, prefix.strip())
 
-    # Werte als Mini-Balken (optional) – hier nur farbiger Text
     formatted = " ".join(values)
     return (
         f'<span class="seq-line prob-line" style="color:{color}">'
@@ -710,10 +706,8 @@ def main():
         print(f"<div class='seq-block' style='display:{display}'>")
         print(f"<span class='seq-header'>{html.escape(header)}</span>")
 
-        # Sammle Score-Zeilen (PH/PE/PC oder IH/IE/IC) um sie gemeinsam zu rendern
-        # Sammle Score-Zeilen (PH/PE/PC oder IH/IE/IC) um sie gemeinsam zu rendern
         score_lines = {}
-        current_ps_seq = ""  # Hier speichern wir die vorhergesagte Struktur
+        current_ps_seq = ""  
 
         def flush_score_lines():
             if not score_lines:
@@ -722,15 +716,13 @@ def main():
             rows = {lbl: raw for lbl, raw in score_lines.items()}
 
             for lbl, raw in rows.items():
-                # Bestimme den Ziel-Buchstaben für dieses Label (letzter Buchstabe von PH, PE, PC)
                 target_char = lbl[-1]
 
                 out = f'<span class="seq-line prob-line prob-row-{target_char}">'
                 out += f'<span class="prob-label">{html.escape(lbl)}</span> '
 
                 for pos, ch in enumerate(raw):
-                    # Prüfe ob diese Position in der PS-Zeile existiert und mit dem Label übereinstimmt
-                    # Die PS-Zeile fängt im Raw-String erst nach dem Prefix an (index pos)
+                    
                     is_predicted = (pos < len(current_ps_seq) and current_ps_seq[pos] == target_char)
 
                     if ch.isdigit() and is_predicted:
@@ -742,12 +734,10 @@ def main():
             score_lines.clear()
 
         has_prob_above = False
-        # Erster Durchlauf: Finde die PS Zeile für den Vergleich
         for line in block[1:]:
             if line.startswith("PS "):
-                current_ps_seq = line[3:]  # Extrahiere die Sequenz (z.B. "CCCCHHHHHH")
+                current_ps_seq = line[3:]  
 
-        # Zweiter Durchlauf: Rendern
         for line in block[1:]:
             prefix = line[:3]
 
@@ -763,7 +753,6 @@ def main():
                         print("<hr class='prob-section-divider'>")
                         has_prob_above = False
 
-                    # 1. Die farbige PS-Zeile (Buchstaben)
                     seq_part = line[3:]
                     colored_ps = "PS "
                     for char in seq_part:
@@ -775,12 +764,10 @@ def main():
                             colored_ps += html.escape(char)
                     print(f"<span class='seq-line'>{colored_ps}</span>")
 
-                    # 2. Die farbige Cartoon-Zeile (Symbole)
-                    # WICHTIG: Hier KEIN html.escape drumherum, da get_cartoon_aligned bereits HTML liefert
+                    
                     cartoon_html = get_cartoon_aligned(line)
                     print(f"<span class='cartoon-line'>{cartoon_html}</span>")
                 else:
-                    # Alle anderen Zeilen (AS, etc.)
                     print(f"<span class='seq-line'>{html.escape(line)}</span>")
 
         flush_score_lines()
@@ -888,3 +875,5 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+
