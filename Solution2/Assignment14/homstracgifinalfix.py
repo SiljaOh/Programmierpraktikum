@@ -6,9 +6,9 @@ import html
 import cgi
 import mysql.connector
 
-DB_HOST = "mysql2-ext.bio.ifi.lmu.de"
-DB_NAME = "bioprakt17"
-DB_USER = "bioprakt17"
+DB_HOST = os.environ.get("DB_HOST", "localhost")
+DB_NAME = os.environ.get("DB_NAME", "homstrad")
+DB_USER = os.environ.get("DB_USER", "")
 
 PW_FILE = os.path.join(os.path.dirname(__file__), ".secrets", "mysql_pw.txt")
 

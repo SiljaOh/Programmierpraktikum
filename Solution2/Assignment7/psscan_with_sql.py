@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+import os
 import sys
 import argparse
 import psscan #use psscan.prosite_to_regex() , psscan.pattern_from_web(), psscan.parse_fasta()
@@ -41,7 +42,7 @@ def main():
             conn = mysql.connector.connect(
                 host="mysql2-ext.bio.ifi.lmu.de",
                 user="bioprakt17",
-                password="$1$18yyYqpW$y//O6M/6c6ke8EGazjJTx/",
+                password=os.environ.get("DB_PASS", ""),
                 database="bioprakt17"
             )
             cursor = conn.cursor()

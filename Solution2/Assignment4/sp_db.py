@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+import os
 import argparse
 import mysql.connector
 
@@ -12,7 +13,7 @@ args = parser.parse_args()
 db = mysql.connector.connect(
     host="mysql2-ext.bio.ifi.lmu.de",
     user="bioprakt17",
-    password="$1$18yyYqpW$y//O6M/6c6ke8EGazjJTx/",
+    password=os.environ.get("DB_PASS", ""),
     database="bioprakt17"
 )
 cursor = db.cursor()
