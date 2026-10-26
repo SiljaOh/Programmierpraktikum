@@ -13,7 +13,7 @@ if "organism" not in form or "features" not in form:
     print("""
     <html>
     <body>
-    <h2>Aufgabe 10 – genome2orf</h2>
+    <h2>genome2orf</h2>
     <form method="post" enctype="multipart/form-data">
         <p>Organism (FASTA):<br>
         <input type="file" name="organism" required></p>

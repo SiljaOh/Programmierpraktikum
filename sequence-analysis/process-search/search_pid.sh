@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # search_pid.sh sucht auf mehreren Rechnern nach einem Prozess
-# benutzt isrunning.sh aus Aufgabe 14
+# benutzt isrunning.sh aus server-load-monitoring
 # wenn Prozess laeuft -> Hinweise in /tmp sammeln
 
 # 1) Parameter einlesen
@@ -36,7 +36,7 @@ while IFS= read -r hostname; do
   esac
 
   # 5) isrunning.sh remote starten
-  # Aufgabe 14: Exit 1 = Prozess laeuft
+  # is_running.sh: Exit 1 = Prozess laeuft
   ssh -p 12 "fiocco@${hostname}" 'bash -s' < ./isrunning.sh "$process" "$user"
   rc=$?
 

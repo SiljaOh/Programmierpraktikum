@@ -3,12 +3,12 @@ import argparse
 import pymysql
 import getpass
 
-# ======= BLATT 1 (Aufgabe 6) – SwissProt swissprot45.dat Parsing (spkeyword.py)
+# ======= Teil 1 – SwissProt swissprot45.dat Parsing (spkeyword.py)
 # ssh -p 12 fiocco@bioclient2.bio.ifi.lmu.de
 # mysql -h mysql2-ext.bio.ifi.lmu.de -u bioprakt17 bioprakt17 -p
 # user="bioprakt17"
 
-# ======= BLATT 2 (Aufgabe 6) – SwissProt SQL-Abfrage (spkeyword-sql.py)
+# ======= Teil 2 – SwissProt SQL-Abfrage (spkeyword-sql.py)
 # spkeyword.py --keyword <k1> <k2> [--swissprot <file>|--db]
 # " | " --> entweder <file> oder <db> lesen
 
@@ -30,7 +30,7 @@ def norm_kw(s: str) -> str:
         return ""
     return s
 
-# Aufgabe 6 : Swissprot-Keyword
+# Swissprot-Keyword
 # zu allen gegebenen Keywords Eintrage aus der Swissprot Datei swissprot45.dat
 # path:
 # 1) ssh -p 12 fiocco@bioclient2.bio.ifi.lmu.de
@@ -208,7 +208,7 @@ def main():
     hits = set()                                        # Menge aller gefundenen Accessions (verhindert Duplikate als Set)
     entry = []                                          # sammelt Zeilen eines SwissProt-Eintrags bis "//"
 
-    for line in args.swissprot:                         # Datei zeilenweise lesen (wie gehabt in Blatt 1)
+    for line in args.swissprot:                         # Datei zeilenweise lesen (wie in Teil 1)
         line = line.rstrip("\n")                        # Zeilenumbruch entfernen
 
         if line.startswith("//"):                       # Ende eines SwissProt-Eintrags

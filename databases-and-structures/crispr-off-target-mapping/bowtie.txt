@@ -8,10 +8,10 @@
 
 
 
-grossla@malachit:/mnt/extstud/praktikum/bioprakt/progprakt-17/Solution1/Assignment13> /mnt/extstud/praktikum/bioprakt/Softw.are/bowtie/bowtie-1.3.1/bowtie \
+grossla@malachit:/mnt/extstud/praktikum/bioprakt/progprakt-17/sequence-analysis/crispr-search> /mnt/extstud/praktikum/bioprakt/Softw.are/bowtie/bowtie-1.3.1/bowtie \
 -v 3 -f -S -a \
 -x /mnt/extstud/praktikum/bioprakt/Software/bowtie/bowtie-1.3.1/indexes/hg19 \
-ecoli_crispr.fasta > /mnt/extstud/praktikum/bioprakt/progprakt-17/Solution2/Assignment13/ecoli_bowtie.sam
+ecoli_crispr.fasta > /mnt/extstud/praktikum/bioprakt/progprakt-17/databases-and-structures/crispr-off-target-mapping/ecoli_bowtie.sam
 # reads processed: 269940
 # reads with at least one alignment: 171900 (63.68%)
 # reads that failed to align: 98040 (36.32%)
@@ -19,10 +19,10 @@ Reported 1039309 alignments
 
 
 
-grossla@malachit:/mnt/extstud/praktikum/bioprakt/progprakt-17/Solution1/Assignment13> /mnt/extstud/praktikum/bioprakt/Software/bowtie/bowtie-1.3.1/bowtie \
+grossla@malachit:/mnt/extstud/praktikum/bioprakt/progprakt-17/sequence-analysis/crispr-search> /mnt/extstud/praktikum/bioprakt/Software/bowtie/bowtie-1.3.1/bowtie \
 -v 3 -f -S -a \
 -x /mnt/extstud/praktikum/bioprakt/Software/bowtie/bowtie-1.3.1/indexes/hg19 \
-pseudo_crispr.fasta > /mnt/extstud/praktikum/bioprakt/progprakt-17/Solution2/Assignment13/pseudo_bowtie.sam
+pseudo_crispr.fasta > /mnt/extstud/praktikum/bioprakt/progprakt-17/databases-and-structures/crispr-off-target-mapping/pseudo_bowtie.sam
 # reads processed: 484078
 # reads with at least one alignment: 318676 (65.83%)
 # reads that failed to align: 165402 (34.17%)
@@ -30,10 +30,10 @@ Reported 1842660 alignments
 
 
 
-grossla@malachit:/mnt/extstud/praktikum/bioprakt/progprakt-17/Solution1/Assignment13> /mnt/extstud/praktikum/bioprakt/Software/bowtie/bowtie-1.3.1/bowtie \
+grossla@malachit:/mnt/extstud/praktikum/bioprakt/progprakt-17/sequence-analysis/crispr-search> /mnt/extstud/praktikum/bioprakt/Software/bowtie/bowtie-1.3.1/bowtie \
 -v 3 -f -S -a \
 -x /mnt/extstud/praktikum/bioprakt/Software/bowtie/bowtie-1.3.1/indexes/hg19 \
-myco_crispr.fasta > /mnt/extstud/praktikum/bioprakt/progprakt-17/Solution2/Assignment13/myco_bowtie.sam
+myco_crispr.fasta > /mnt/extstud/praktikum/bioprakt/progprakt-17/databases-and-structures/crispr-off-target-mapping/myco_bowtie.sam
 # reads processed: 397479
 # reads with at least one alignment: 225016 (56.61%)
 # reads that failed to align: 172463 (43.39%)
@@ -41,10 +41,10 @@ Reported 2350687 alignments
 
 
 
-grossla@malachit:/mnt/extstud/praktikum/bioprakt/progprakt-17/Solution1/Assignment13> /mnt/extstud/praktikum/bioprakt/Software/bowtie/bowtie-1.3.1/bowtie \
+grossla@malachit:/mnt/extstud/praktikum/bioprakt/progprakt-17/sequence-analysis/crispr-search> /mnt/extstud/praktikum/bioprakt/Software/bowtie/bowtie-1.3.1/bowtie \
 -v 3 -f -S -a \
 -x /mnt/extstud/praktikum/bioprakt/Software/bowtie/bowtie-1.3.1/indexes/hg19 \
-helio_crispr.fasta > /mnt/extstud/praktikum/bioprakt/progprakt-17/Solution2/Assignment13/helio_bowtie.sam
+helio_crispr.fasta > /mnt/extstud/praktikum/bioprakt/progprakt-17/databases-and-structures/crispr-off-target-mapping/helio_bowtie.sam
 # reads processed: 77806
 # reads with at least one alignment: 65420 (84.08%)
 # reads that failed to align: 12386 (15.92%)

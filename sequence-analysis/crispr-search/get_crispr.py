@@ -13,7 +13,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument('--fasta',type=argparse.FileType('r'), required=True)
 args = parser.parse_args()
 
-#schon ORF von AUfgabe 10
+#ORFs aus genome2orf
 def crispr_search(header, genome_parts):
     crispr_length = 23
     genome_sequence = "".join(genome_parts).upper()

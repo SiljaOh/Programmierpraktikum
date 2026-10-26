@@ -262,7 +262,7 @@ def form_html(default_k="5 7 9", default_start="-1", error_msg=None):
     err = f'<div class="card"><div class="danger">{html.escape(error_msg)}</div></div>' if error_msg else ""
     return f"""
     <div class="toplinks"><a href="../">← Zur Startseite</a></div>
-    <h1>Aufgabe 12 – unique</h1>
+    <h1>unique</h1>
     <div class="card">
       <div class="hint">
         Lade eine FASTA-Datei hoch. Gib k-Werte ein (z.B. <code>5 7 9</code>).
@@ -294,7 +294,7 @@ try:
 
     # Erstaufruf: Formular
     if "fasta" not in form:
-        render_page("Aufgabe 12 – unique", form_html())
+        render_page("unique", form_html())
         raise SystemExit
 
     # Parameter lesen (mit Defaults für Re-Render)
@@ -343,7 +343,7 @@ try:
     meta = f"Datei: <b>{html.escape(fasta_filename) if fasta_filename else '(Upload)'}</b> | Gene: <b>{n}</b> | start: <b>{start}</b>"
     body = f"""
       <div class="toplinks"><a href="../">← Zur Startseite</a></div>
-      <h1>Aufgabe 12 – Ergebnis</h1>
+      <h1>Ergebnis</h1>
 
       <div class="card">
         <div class="hint">{meta}</div>
@@ -361,14 +361,14 @@ try:
         {form_html(default_k=k_raw or "5 7 9", default_start=str(start))}
       </div>
     """
-    render_page("Aufgabe 12 – Ergebnis", body)
+    render_page("Ergebnis", body)
 
 except ValueError as e:
     # „saubere“ Nutzerfehler: Formular erneut anzeigen + Fehlermeldung
     try:
         k_raw = locals().get("k_raw", "5 7 9")
         start_raw = locals().get("start_raw", "-1")
-        render_page("Aufgabe 12 – unique (Fehler)", form_html(default_k=k_raw, default_start=start_raw, error_msg=str(e)))
+        render_page("unique (Fehler)", form_html(default_k=k_raw, default_start=start_raw, error_msg=str(e)))
     except Exception:
         print("Content-Type: text/plain; charset=utf-8\n")
         print("Fehler:", e)

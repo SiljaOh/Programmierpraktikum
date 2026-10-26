@@ -7,7 +7,7 @@ from typing import Dict, List, Optional, Tuple
 import math
 import matplotlib.pyplot as plt
 
-# makescc.py (Aufgabe 11)
+# makescc.py
 
 # Mapping von 3 Letter Aminosäuren (PDB) zu 1 Letter Code fuer Algorithmus
 # für Sequenzdarstellung und weitere Berechnungen ist der 1-Letter-Code besser

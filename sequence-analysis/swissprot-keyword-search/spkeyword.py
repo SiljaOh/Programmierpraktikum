@@ -9,7 +9,7 @@ def norm_kw(s: str) -> str:
         return ""
     return s
 
-# Aufgabe 6 : Swissprot-Keyword
+# Swissprot-Keyword
 # zu allen gegebenen Keywords Eintrage aus der Swissprot Datei swissprot45.dat
 # path:
 # 1) ssh -p 12 fiocco@bioclient2.bio.ifi.lmu.de

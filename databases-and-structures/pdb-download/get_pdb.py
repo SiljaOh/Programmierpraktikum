@@ -4,7 +4,7 @@ import sys
 import urllib.request
 #3d struktur von Molekülen, fasta buchstaben aber pdb wo (x y z) atom im raum
 #RCSB website portal zum archiv
-#Protein Struktur bestimmt Aufgabe
+#Protein Struktur bestimmt
 #currently 4-character alphanumeric
 parser = argparse.ArgumentParser()
 parser.add_argument('--id', required=True)

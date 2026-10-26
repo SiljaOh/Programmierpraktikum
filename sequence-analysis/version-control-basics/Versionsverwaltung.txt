@@ -1,4 +1,4 @@
-Aufgabe 2:
+Git-Grundlagen:
 
 Anfang erstmal clonen
 
@@ -21,16 +21,16 @@ mkdir Blatt1
 
 Datei hinzufügen:
 
-touch aufgabe1.py (erstellen)
+touch script1.py (erstellen)
 
-git add aufgabe1.py
+git add script1.py
 
 
 Datei ändern: 
 
-echo "# Lösung für die erste AUfgabe: ..." > aufgabe1.py
+echo "# erstes Skript: ..." > script1.py
 
-nano aufgabe1.py
+nano script1.py
 
 mit add wieder hinzufügen
 
