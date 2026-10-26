@@ -54,4 +54,4 @@ Scripts that use a database read their credentials from environment variables (`
 Silja Ohlsen and Zeno Fiocco (sequence alignment) · Lara Groß and Anna Niederlechner (GOR)
 Supervision: Prof. Dr. Volker Heun, Felix Offensperger, Armin Hadziahmetovic
 
-The web interface for this project lives in [bioinformatics-toolkit](https://github.com/SiljaOh/bioinformatics-toolkit).
+The web interface for this project lives in [protein-alignment-server](https://github.com/SiljaOh/protein-alignment-server).
