@@ -7,6 +7,9 @@ The main project (`alignment-and-gor/`) implements two classic bioinformatics me
 1. **Pairwise sequence alignment** with affine gap costs (Gotoh), benchmarked on HOMSTRAD structural alignments
 2. **Protein secondary structure prediction** with the GOR family of methods (GOR I, III, IV and the MSA-based GOR V), evaluated on CB513 and a CASP test set
 
+![GOR results: Q3 accuracy and an example prediction](docs/gor_overview.png)
+<sub>Left: mean Q3 in 5-fold cross-validation on CB513. Right: predicted secondary structure of lysozyme (PDB 154L) with the GOR models trained on all of CB513, so this protein was part of the training data. The cross-validated values on the left are the fair comparison.</sub>
+
 ## Results: secondary structure prediction
 
 Mean Q3 accuracy (share of residues correctly predicted as helix, strand or coil), 5-fold cross-validation on CB513:
