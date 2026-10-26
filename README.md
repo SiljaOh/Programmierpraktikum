@@ -2,7 +2,7 @@
 
 Group project from the Bioinformatics programming lab (Programmierpraktikum) at LMU Munich / TUM, winter semester 2025/26.
 
-The main project (`Solution3/`) implements two classic bioinformatics methods from scratch in Java and evaluates them on standard benchmarks:
+The main project (`alignment-and-gor/`) implements two classic bioinformatics methods from scratch in Java and evaluates them on standard benchmarks:
 
 1. **Pairwise sequence alignment** with affine gap costs (Gotoh), benchmarked on HOMSTRAD structural alignments
 2. **Protein secondary structure prediction** with the GOR family of methods (GOR I, III, IV and the MSA-based GOR V), evaluated on CB513 and a CASP test set
@@ -23,17 +23,18 @@ Using multiple sequence alignments (GOR V) improves Q3 by about 6 percentage poi
 ## Project structure
 
 ```
-Solution3/
+alignment-and-gor/
 ├── Alignment/            # Gotoh, global, local and free-shift alignment (Java)
 │   └── Silja/            # HOMSTRAD parser, benchmark and gap-parameter tuning (Python)
 └── GOR/                  # GOR I/III/IV/V training, prediction and evaluation (Java)
 tools/                    # cross-validation, hyperparameter tuning, CASP evaluation (Python)
-Solution1/, Solution2/    # weekly lab assignments (sequence tools, SQL databases, web CGI)
+sequence-analysis/        # sequence tools: ORF finder, translation, PROSITE scan, CRISPR search, k-mers, web CGI
+databases-and-structures/ # SQL databases, PDB structures, contact maps, HOMSTRAD import, secondary structure
 ```
 
 ## How to run
 
-GOR prediction (from `Solution3/GOR`):
+GOR prediction (from `alignment-and-gor/GOR`):
 
 ```bash
 javac -d out $(find src -name "*.java")
@@ -44,7 +45,7 @@ java -cp out de.lmu.ifi.bio.gor.cli.Predict
 Alignment benchmark:
 
 ```bash
-python Solution3/Alignment/Silja/run_benchmark.py --quick
+python alignment-and-gor/Alignment/Silja/run_benchmark.py --quick
 ```
 
 Scripts that use a database read their credentials from environment variables (`DB_HOST`, `DB_USER`, `DB_PASS`).
