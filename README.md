@@ -1,4 +1,4 @@
-# Bioinformatics Programming Lab: Sequence Alignment & Protein Secondary Structure Prediction
+# Protein Secondary Structure Prediction & Sequence Alignment
 
 Group project from the Bioinformatics programming lab (Programmierpraktikum) at LMU Munich / TUM, winter semester 2025/26.
 
